@@ -1,3 +1,4 @@
+import http.client
 import json
 import threading
 import unittest
@@ -96,15 +97,28 @@ class APITests(unittest.TestCase):
         self.assertEqual(outcome.exception.code, 404)
 
     def test_request_size_limit(self):
-        request = urllib.request.Request(
-            self.base + "/v1/chat/completions",
-            data=b"x",
-            headers={"Content-Type": "application/json", "Content-Length": str(MAX_BODY_BYTES + 1)},
-            method="POST",
-        )
-        # urllib may recalculate Content-Length for a real body, so test the bound directly.
-        self.assertEqual(MAX_BODY_BYTES, 2097152)
-        self.assertGreater(MAX_BODY_BYTES + 1, MAX_BODY_BYTES)
+        # Send only headers: an oversized request must be rejected before reading its body.
+        connection = http.client.HTTPConnection("127.0.0.1", self.front.server_address[1], timeout=3)
+        try:
+            connection.putrequest("POST", "/v1/chat/completions")
+            connection.putheader("Content-Type", "application/json")
+            connection.putheader("Content-Length", str(MAX_BODY_BYTES + 1))
+            connection.endheaders()
+            response = connection.getresponse()
+            self.assertEqual(response.status, 413)
+        finally:
+            connection.close()
+
+    def test_missing_content_length_rejected(self):
+        connection = http.client.HTTPConnection("127.0.0.1", self.front.server_address[1], timeout=3)
+        try:
+            connection.putrequest("POST", "/v1/chat/completions")
+            connection.putheader("Content-Type", "application/json")
+            connection.endheaders()
+            response = connection.getresponse()
+            self.assertEqual(response.status, 411)
+        finally:
+            connection.close()
 
 
 if __name__ == "__main__":
