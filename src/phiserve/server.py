@@ -9,7 +9,8 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
-from .ollama_compat import handle_ollama, model_tags
+from .ollama_compat import handle_ollama, model_tags, translate, UnsupportedRequest
+from .manager import ModelManagerError
 
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
@@ -20,11 +21,12 @@ class PhiServeHTTP(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address: tuple[str, int], model_alias: str, backend_port: int, model_path=None):
+    def __init__(self, address: tuple[str, int], model_alias: str, backend_port: int, model_path=None, manager=None):
         super().__init__(address, APIHandler)
         self.model_alias = model_alias
         self.backend_port = backend_port
         self.model_path = model_path
+        self.manager = manager
 
 
 class APIHandler(BaseHTTPRequestHandler):
@@ -42,19 +44,43 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
+        manager = self.server.manager
         if path == "/api/tags":
-            self._json(200, model_tags(self.server.model_alias, self.server.model_path))
+            if manager is None:
+                self._json(200, model_tags(self.server.model_alias, self.server.model_path))
+            else:
+                entries = []
+                for alias, model_path in sorted(manager.catalog().items()):
+                    entries.extend(model_tags(alias, model_path)["models"])
+                self._json(200, {"models": entries})
+        elif path == "/api/ps":
+            if manager is None:
+                models = model_tags(self.server.model_alias, self.server.model_path)["models"]
+            else:
+                state = manager.status()
+                models = (model_tags(state["active_model"], state["model_path"])["models"]
+                          if state["active_model"] is not None and state["backend_alive"] else [])
+            self._json(200, {"models": models})
         elif path == "/v1/models":
+            aliases = list(manager.catalog()) if manager is not None else [self.server.model_alias]
             self._json(200, {
                 "object": "list",
-                "data": [{
-                    "id": self.server.model_alias,
-                    "object": "model",
-                    "owned_by": "local",
-                    "created": 0,
-                }],
+                "data": [{"id": alias, "object": "model", "owned_by": "local", "created": 0}
+                         for alias in sorted(aliases)],
             })
         elif path == "/health":
+            if manager is not None:
+                state = manager.status()
+                ready = not state["closed"] and not state["transitioning"]
+                if state["active_model"] and not state["backend_alive"]:
+                    ready = False
+                self._json(200 if ready else 503, {
+                    "status": "ok" if ready else "unavailable",
+                    "runtime": "local", "manager": "single-resident",
+                    "active_model": state["active_model"],
+                    "inflight_requests": state["inflight_requests"],
+                })
+                return
             try:
                 with urllib.request.urlopen(
                     f"http://127.0.0.1:{self.server.backend_port}/health", timeout=2
@@ -93,14 +119,38 @@ class APIHandler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             self._json(400, {"error": {"message": "Invalid JSON"}})
             return
-        if not isinstance(request, dict) or request.get("model") != self.server.model_alias:
-            self._json(400, {"error": {"message": "Model must match the active alias"}})
+        if not isinstance(request, dict):
+            self._json(400, {"error": {"message": "Request must be a JSON object"}})
+            return
+        alias = request.get("model")
+        manager = self.server.manager
+        if not isinstance(alias, str) or (manager is None and alias != self.server.model_alias):
+            self._json(400, {"error": {"message": "Model must match a valid active alias"}})
             return
         if "stream" in request and not isinstance(request["stream"], bool):
             self._json(400, {"error": {"message": "stream must be boolean"}})
             return
+        # Validate Ollama subset before an expensive cold model load.
         if path in {"/api/chat", "/api/generate"}:
-            handle_ollama(self, path, request)
+            try:
+                translate(path, request)
+            except UnsupportedRequest as exc:
+                self._json(422, {"error": str(exc)})
+                return
+        if manager is None:
+            self._dispatch(path, request, alias)
+            return
+        try:
+            lease = manager.acquire(alias)
+        except ModelManagerError as exc:
+            self._json(exc.status, {"error": str(exc)})
+            return
+        with lease:
+            self._dispatch(path, request, alias)
+
+    def _dispatch(self, path: str, request: dict, alias: str) -> None:
+        if path in {"/api/chat", "/api/generate"}:
+            handle_ollama(self, path, request, model_alias=alias)
         else:
             payload = json.dumps(request, separators=(",", ":")).encode("utf-8")
             self._forward(path, payload)
@@ -134,6 +184,6 @@ class APIHandler(BaseHTTPRequestHandler):
             conn.close()
 
 
-def make_server(model_alias: str, backend_port: int, listen_port: int = 11435, model_path=None) -> PhiServeHTTP:
+def make_server(model_alias: str, backend_port: int, listen_port: int = 11435, model_path=None, manager=None) -> PhiServeHTTP:
     # Intentionally no bind address argument until authentication is implemented.
-    return PhiServeHTTP(("127.0.0.1", listen_port), model_alias, backend_port, model_path)
+    return PhiServeHTTP(("127.0.0.1", listen_port), model_alias, backend_port, model_path, manager)
