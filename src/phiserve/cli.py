@@ -13,6 +13,7 @@ from .registry import ModelRegistry, RegistryError
 from .ollama_store import OllamaStoreError, discover, import_model
 from .validation import validate_local
 from .server import make_server
+from .security import create_token_file, load_access
 
 
 def parser() -> argparse.ArgumentParser:
@@ -45,6 +46,11 @@ def parser() -> argparse.ArgumentParser:
     serve.add_argument("--ctx-size", type=int, default=4096)
     serve.add_argument("--gpu-layers", type=int, default=0)
     serve.add_argument("--startup-timeout", type=float, default=120)
+    auth = commands.add_parser("auth", help="Local browser-bridge token management")
+    auth_commands = auth.add_subparsers(dest="action", required=True)
+    create_key = auth_commands.add_parser("create", help="Write a new bearer token to a private file")
+    create_key.add_argument("--output", required=True, help="New file; existing files are not overwritten")
+
     daemon = commands.add_parser("daemon", help="One shared local daemon; switch models after in-flight requests finish")
     daemon.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
     daemon.add_argument("--port", type=int, default=11435)
@@ -54,6 +60,8 @@ def parser() -> argparse.ArgumentParser:
     daemon.add_argument("--startup-timeout", type=float, default=120)
     daemon.add_argument("--idle-seconds", type=float, default=300, help="Unload after idle interval (0 disables)")
     daemon.add_argument("--max-concurrent", type=int, default=4, help="Maximum simultaneous requests for loaded model")
+    daemon.add_argument("--browser-origin", help="Exact trusted browser origin; opt-in CORS with token")
+    daemon.add_argument("--api-key-file", help="Local token file; required with browser origin")
     validate = commands.add_parser("validate", help="Run an actual local model and write an observation receipt")
     validate.add_argument("alias")
     validate.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
@@ -69,6 +77,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser().parse_args(argv)
     registry = ModelRegistry()
     try:
+        if args.command == "auth":
+            path = create_token_file(args.output)
+            print(f"Created private token file: {path} (token not printed)")
+            return 0
+
         if args.command == "models":
             if args.action == "add":
                 model = registry.add(args.alias, args.path)
@@ -114,11 +127,12 @@ def main(argv: list[str] | None = None) -> int:
                     or args.gpu_layers < 0 or args.startup_timeout <= 0
                     or args.idle_seconds < 0 or args.max_concurrent < 1):
                 raise RegistryError("Invalid daemon ports, context, layer count, timeout, idle interval, or concurrency")
+            access = load_access(args.browser_origin, args.api_key_file)
             manager = ModelManager(registry=registry, executable=args.llama_server,
                                    backend_port=args.backend_port, ctx_size=args.ctx_size,
                                    gpu_layers=args.gpu_layers, startup_timeout=args.startup_timeout,
                                    idle_seconds=args.idle_seconds, max_concurrent=args.max_concurrent)
-            server = make_server("", args.backend_port, args.port, manager=manager)
+            server = make_server("", args.backend_port, args.port, manager=manager, browser_access=access)
             server.timeout = 1
             try:
                 print(f"PhiServe shared manager listening on http://127.0.0.1:{args.port}; no model loaded yet.", flush=True)

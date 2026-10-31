@@ -37,7 +37,15 @@
 - [ ] Physical GPU/model validation, true VRAM accounting, model swap benchmark, and crash recovery receipts
 - [ ] Shared multi-process scheduling, fairness, queuing, cancellation, and memory-aware admission
 
-## Rung 5: ecosystem adapters
+## Rung 5: authenticated browser-to-loopback bridge (experimental)
+
+- [x] Explicit trusted browser origin plus bearer-token file
+- [x] Protected loopback endpoints and restricted preflight/NDJSON/SSE headers
+- [x] Exclusive private token-file creation; no token in daemon logs
+- [ ] Real browser acceptance on the operator's machine with actual model weights
+- [ ] Separately designed secure remote-device gateway (no direct LAN listener)
+
+## Rung 6: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests
