@@ -128,7 +128,7 @@ class ReferenceGateTests(unittest.TestCase):
             prompt="hello world", trace_path=self.trace,
         )
 
-    def run(self, runner, **overrides):
+    def run_gate(self, runner, **overrides):
         args = {
             "tokenizer_path": self.tokenizer, "prompt": "hello world",
             "trace_path": self.trace, "device": "cpu",
@@ -201,12 +201,12 @@ class ReferenceGateTests(unittest.TestCase):
             report, _ = self.preflight()
             self.assertFalse(report["reference_eligible_for_run"])
             with self.assertRaisesRegex(PhiStreamLabError, "32 reference steps"):
-                self.run(runner=lambda *_a, **_k: self.fail("must not execute"))
+                self.run_gate(runner=lambda *_a, **_k: self.fail("must not execute"))
         self.assertFalse(self.output.exists())
 
     def test_matching_user_reference_writes_only_minimal_unverified_receipt(self):
         with self.mocked_reference():
-            result = self.run(self.fake_runner())
+            result = self.run_gate(self.fake_runner())
         self.assertEqual(result["status"], "USER_ASSERTED_REFERENCE_MATCH_UNAUTHENTICATED")
         self.assertEqual(result["exact_greedy_tokens_matched"], 32)
         self.assertEqual(result["sampled_logit_probes_matched"], 32)
@@ -220,21 +220,21 @@ class ReferenceGateTests(unittest.TestCase):
 
     def test_genuine_mismatch_is_a_diagnostic_not_success(self):
         with self.mocked_reference():
-            result = self.run(self.fake_runner(match=False))
+            result = self.run_gate(self.fake_runner(match=False))
         self.assertEqual(result["status"], "REFERENCE_MISMATCH")
         self.assertFalse(result["chat_service_enabled"])
         self.assertTrue(self.output.exists())
 
     def test_inconsistent_pass_claim_is_rejected(self):
         with self.mocked_reference(), self.assertRaisesRegex(PhiStreamLabError, "contradicts"):
-            self.run(self.fake_runner(tamper=lambda d: d["execution"].update(
+            self.run_gate(self.fake_runner(tamper=lambda d: d["execution"].update(
                 {"exact_greedy_tokens_matched": 1}
             )))
         self.assertFalse(self.output.exists())
 
     def test_forged_checkpoint_fingerprint_is_rejected(self):
         with self.mocked_reference(), self.assertRaisesRegex(PhiStreamLabError, "binding"):
-            self.run(self.fake_runner(tamper=lambda d: d["checkpoint_fingerprint"]["files"].update(
+            self.run_gate(self.fake_runner(tamper=lambda d: d["checkpoint_fingerprint"]["files"].update(
                 {"config.json": "z" * 64}
             )))
         self.assertFalse(self.output.exists())
@@ -247,17 +247,17 @@ class ReferenceGateTests(unittest.TestCase):
             self._save()
             return output
         with self.mocked_reference(), self.assertRaisesRegex(PhiStreamLabError, "changed"):
-            self.run(mutate)
+            self.run_gate(mutate)
         self.assertFalse(self.output.exists())
 
     def test_approval_invalid_budget_and_existing_receipt_fail_before_run(self):
         with self.mocked_reference(), self.assertRaisesRegex(PhiStreamLabError, "approve"):
-            self.run(lambda *_a, **_k: self.fail("unexpected run"), approved=False)
+            self.run_gate(lambda *_a, **_k: self.fail("unexpected run"), approved=False)
         with self.mocked_reference(), self.assertRaisesRegex(PhiStreamLabError, "finite"):
-            self.run(lambda *_a, **_k: self.fail("unexpected run"), capacity_mib=float("nan"))
+            self.run_gate(lambda *_a, **_k: self.fail("unexpected run"), capacity_mib=float("nan"))
         self.output.write_text("existing", encoding="utf-8")
         with self.mocked_reference(), self.assertRaisesRegex(PhiStreamLabError, "already exists"):
-            self.run(lambda *_a, **_k: self.fail("unexpected run"))
+            self.run_gate(lambda *_a, **_k: self.fail("unexpected run"))
         self.assertEqual(self.output.read_text(), "existing")
 
     def test_cli_registers_both_parity_commands(self):
