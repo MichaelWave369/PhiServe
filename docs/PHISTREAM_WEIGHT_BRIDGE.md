@@ -38,3 +38,7 @@ Use `phiserve phistream remove research-llama` to remove only the PhiServe catal
 ## Promotion gate
 
 Before PhiServe can expose PhiStream as a production chat backend, PhiStream needs a tokenizer and chat-template contract, robust text streaming and cancellation, model/license provenance, real checkpoint parity against an independently executed reference, memory/latency receipts on operator hardware, and concurrency/process lifecycle handling. Add that as a **new validated backend**, rather than routing users to an experimental token-ID executor.
+
+## Rung 7: optional text research lane
+
+This checkpoint catalog also supports opt-in [local tokenizer and decoded text experiments](PHISTREAM_TEXT_LAB.md). `tokenizer-check` validates local token IDs without executing weights. `text-lab` invokes the same governed PhiStream token-ID runner as above and decodes locally. This does **not** introduce any natural-language chat API, model auto-selection, or reference parity assertion.

@@ -16,6 +16,7 @@ from .validation import validate_local
 from .server import make_server
 from .security import create_token_file, load_access
 from .phistream_lab import PhiStreamCatalog, PhiStreamLabError, probe_checkpoint, run_ids
+from .phistream_text import encode_prompt, text_lab
 
 
 def parser() -> argparse.ArgumentParser:
@@ -64,6 +65,28 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--reserve-mib", type=float, default=1024.0)
     execute.add_argument("--output", required=True, help="New local JSON receipt; refuse overwrite")
     execute.add_argument("--timeout-seconds", type=int, default=900)
+
+    token_check = actions.add_parser("tokenizer-check", help="Offline text tokenizer preflight; no model execution")
+    token_check.add_argument("alias")
+    token_check.add_argument("--tokenizer", required=True, help="Existing local tokenizer.json file")
+    token_check.add_argument("--prompt", required=True, help="Plain-text prompt; may appear in local process arguments")
+    token_check.add_argument("--tokens", type=int, default=4)
+    token_check.add_argument("--add-special-tokens", action="store_true",
+                             help="Apply tokenizer's defined added specials; not an automatic chat template")
+
+    text_command = actions.add_parser("text-lab", help="Explicitly execute and decode experimental PhiStream token IDs")
+    text_command.add_argument("alias")
+    text_command.add_argument("--tokenizer", required=True, help="Existing local tokenizer.json file")
+    text_command.add_argument("--prompt", required=True)
+    text_command.add_argument("--tokens", type=int, default=4)
+    text_command.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
+    text_command.add_argument("--capacity-mib", type=float, required=True)
+    text_command.add_argument("--reserve-mib", type=float, default=1024.0)
+    text_command.add_argument("--approve-local-execution", action="store_true")
+    text_command.add_argument("--add-special-tokens", action="store_true")
+    text_command.add_argument("--show-output", action="store_true", help="Explicitly print decoded text locally")
+    text_command.add_argument("--output", required=True, help="New private metadata receipt; no raw text")
+    text_command.add_argument("--timeout-seconds", type=int, default=900)
 
     serve = commands.add_parser("serve", help="Start supervised llama.cpp and the loopback HTTP API")
     serve.add_argument("alias")
@@ -138,6 +161,25 @@ def main(argv: list[str] | None = None) -> int:
                     timeout_seconds=args.timeout_seconds,
                 )
                 print(json.dumps(result, indent=2, sort_keys=True))
+            elif args.action == "tokenizer-check":
+                _, _, report = encode_prompt(
+                    research_catalog, args.alias, args.tokenizer, args.prompt,
+                    tokens=args.tokens, add_special_tokens=args.add_special_tokens,
+                )
+                print(json.dumps(report, indent=2, sort_keys=True))
+            elif args.action == "text-lab":
+                report, generated_text = text_lab(
+                    research_catalog, args.alias, tokenizer_path=args.tokenizer,
+                    prompt=args.prompt, tokens=args.tokens, device=args.device,
+                    capacity_mib=args.capacity_mib, reserve_mib=args.reserve_mib,
+                    output=args.output, approved=args.approve_local_execution,
+                    add_special_tokens=args.add_special_tokens,
+                    timeout_seconds=args.timeout_seconds,
+                )
+                print(json.dumps(report, indent=2, sort_keys=True))
+                if args.show_output:
+                    print("Local experimental decoded text (NOT validated chat):")
+                    print(generated_text)
             return 0
 
         if args.command == "models":

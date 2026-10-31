@@ -54,7 +54,18 @@
 - [ ] Validate with a real licensed local checkpoint and independent reference parity
 - [ ] Tokenizer, EOS/chat-template, text streaming and safe subprocess lifecycle before enabling a native chat backend
 
-## Rung 7: ecosystem adapters
+## Rung 7: optional tokenizer-to-text research bridge
+
+- [x] Explicit local tokenizer.json preflight and vocabulary/context bounds
+- [x] No-weight-execution tokenizer-check command
+- [x] Explicitly approved text-lab delegates to PhiStream's existing token-ID runner
+- [x] Temporary token-ID receipt deleted; durable result contains hashes/lengths only
+- [x] Research output remains outside HTTP model listings and chat routes
+- [ ] Authenticated tokenizer/checkpoint provenance and tokenizer ID parity
+- [ ] Chat-template, BOS/EOS, context growth, cancellation and streaming validation
+- [ ] Physical 5070 execution with licensed local weights and independent-reference parity
+
+## Rung 8: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests
