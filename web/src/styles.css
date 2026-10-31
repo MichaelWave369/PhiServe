@@ -311,3 +311,43 @@ h1, h2, h3 { font-family: 'Space Grotesk', 'Segoe UI', sans-serif; }
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Ecosystem inventory: static/source-reviewed, not a live connectivity scan */
+.ecosystem-section { margin-top: 40px; }
+.ecosystem-notice { border: 1px solid #46536a; background: linear-gradient(135deg,#191f32,#111d29); border-radius: 12px; padding: 20px 22px; margin-bottom: 17px; }
+.ecosystem-notice strong { color: #d6caff; letter-spacing: 1.7px; font-size: 10px; }
+.ecosystem-notice p { color: #afbccd; margin: 9px 0; line-height: 1.6; font-size: 12px; }
+.ecosystem-notice code { color: #9caec3; font-size: 10px; overflow-wrap: anywhere; }
+.ecosystem-metrics { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; margin-bottom: 17px; }
+.ecosystem-metrics>div { background: #10212b; border: 1px solid #2c414b; border-radius: 10px; padding: 15px 17px; }
+.ecosystem-metrics strong { display: block; font: 600 30px 'Space Grotesk',sans-serif; color: #aaf7df; }
+.ecosystem-metrics span { display: block; margin-top: 3px; font-size: 9px; letter-spacing: 1px; font-weight: 800; color: #899eab; }
+.ecosystem-hub { display: flex; align-items: center; gap: 26px; border: 1px solid rgba(133,243,210,.35); border-radius: 13px; padding: 24px; margin-bottom: 17px; background: radial-gradient(circle at 15% 50%,rgba(63,149,132,.18),transparent 48%),#0e2129; }
+.ecosystem-hub-center { display: flex; align-items: center; gap: 7px; flex-direction: column; min-width: 180px; }
+.ecosystem-hub-center span { font: 700 45px 'Space Grotesk',sans-serif; color: #93f2d4; line-height: 1; }
+.ecosystem-hub-center strong { letter-spacing: 2px; font-size: 12px; }
+.ecosystem-hub-center small { font-size: 8px; letter-spacing: 1px; color: #81adad; }
+.ecosystem-hub p { color: #a4bfc3; font-size: 12px; line-height: 1.65; margin: 0; }
+.ecosystem-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; }
+.ecosystem-card { min-width: 0; background: #101e29; border: 1px solid #29424a; border-radius: 13px; padding: 22px; display: flex; flex-direction: column; }
+.ecosystem-card-top { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; }
+.ecosystem-category { color: #83a9b0; letter-spacing: .8px; font-size: 9px; line-height: 1.5; }
+.ecosystem-state { color: #d8c8fd; padding: 5px 8px; border: 1px solid #5c5078; background: #2b2540; border-radius: 6px; font-size: 9px; font-weight: 800; letter-spacing: .5px; white-space: nowrap; }
+.ecosystem-state.adapter { color: #b9f6df; background: #193831; border-color: #386b5b; }
+.ecosystem-state.research { color: #bcd8fc; background: #202d46; border-color: #425e79; }
+.ecosystem-state.planned { color: #b4bfc9; background: #1c303a; border-color: #36515e; }
+.ecosystem-card h3 { font-size: 24px; letter-spacing: -.8px; margin: 16px 0 7px; color: #f4fafc; }
+.ecosystem-direction { color: #82e0c9; font-size: 11px; letter-spacing: .2px; margin: 0 0 12px; }
+.ecosystem-description { color: #a6b8c2; font-size: 12px; line-height: 1.7; margin: 0 0 16px; }
+.ecosystem-next { border-top: 1px solid #2a424c; padding-top: 16px; margin-top: auto; }
+.ecosystem-next strong { color: #adcac7; font-size: 9px; letter-spacing: 1.1px; }
+.ecosystem-next p { color: #9eafb9; line-height: 1.6; font-size: 11px; margin: 7px 0 17px; }
+.ecosystem-links { display: flex; gap: 21px; }
+.ecosystem-links a { font-size: 10px; font-weight: 800; color: #9af8dc; letter-spacing: 1px; }
+.ecosystem-links a:hover { color: white; }
+@media (max-width: 700px) {
+  .ecosystem-grid { grid-template-columns: 1fr; }
+  .ecosystem-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ecosystem-hub { flex-direction: column; align-items: flex-start; gap: 18px; }
+  .ecosystem-hub-center { align-self: center; }
+}

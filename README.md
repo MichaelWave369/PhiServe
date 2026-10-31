@@ -14,6 +14,12 @@ PhiServe includes a responsive [React control deck](web/README.md) with a **clea
 
 The page hosts **no model inference, weights, token database or cloud backend**. Its bearer token stays in the browser tab's memory and is never saved by the app. To connect from the hosted page, start PhiServe daemon locally with `--browser-origin https://michaelwave369.github.io --api-key-file PRIVATE_FILE`. That origin is shared by other projects under the same GitHub Pages host: only run applications you trust there. An HTTPS browser's loopback/PNA permissions can still prevent same-device connections. See [browser bridge](docs/BROWSER_BRIDGE.md) and [console guide](web/README.md).
 
+## Shared ecosystem integrations (Rung 12)
+
+The React console now includes a **source-reviewed Ecosystem map** of PhiStream, PocketBrain, BrainC, Vessie, GAIA (in GypsyAI), and Think Tank. It distinguishes research-only inference, an existing PocketBrain PhiServe client, a proposed Think Tank adapter, and projects that still need scoped provider work. This is **not live connectivity discovery**.
+
+Read [the integration boundaries and phased plan](docs/ECOSYSTEM_BRIDGES.md) before changing any other application's memory, model or permission routing. PhiServe handles local GGUF inference; each consumer retains its own identity, persona, memory and governance.
+
 ## Quick start
 
 Requirements: Python 3.11+; a trusted, independently installed `llama-server` executable; and a legitimate local GGUF model whose license permits your use.
