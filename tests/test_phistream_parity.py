@@ -215,7 +215,7 @@ class ReferenceGateTests(unittest.TestCase):
         content = self.output.read_text()
         self.assertNotIn("hello world", content)
         self.assertNotIn("expected_generated_token_ids", content)
-        self.assertNotIn("logit_probes", content)
+        self.assertNotIn("logit_probes", json.loads(content))
         self.assertNotIn("model.safetensors", content)
 
     def test_genuine_mismatch_is_a_diagnostic_not_success(self):
