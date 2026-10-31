@@ -4,13 +4,16 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phiserve"
-version = "0.6.0"
+version = "0.7.0"
 description = "Offline-first, local model serving"
 readme = "README.md"
 requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [{name = "PhiServe contributors"}]
 dependencies = []
+
+[project.optional-dependencies]
+phistream-text = ["tokenizers>=0.20,<1"]
 
 [project.scripts]
 phiserve = "phiserve.cli:main"

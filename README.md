@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.6.0 experimental, with a separate PhiStream safetensors research lane.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.7.0 experimental, including optional local PhiStream text-tokenizer research.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -111,12 +111,27 @@ phiserve phistream run-ids research-llama --prompt 1,2,3 --tokens 4 --device cpu
 
 The input is **numeric token IDs**, not natural-language text. A successful check is not a trained-weight accuracy, GPU performance, or independent-reference parity certification. Research aliases are stored **separately** and never appear in PhiServe's Ollama/OpenAI chat model lists. See [PhiStream checkpoint bridge](docs/PHISTREAM_WEIGHT_BRIDGE.md) and the [PhiStream repository](https://github.com/MichaelWave369/PhiStream) for strict architecture limits.
 
+## PhiStream experimental text lab (Rung 7)
+
+A separate research command can encode **plain text using an explicitly selected local `tokenizer.json`**, run PhiStream's existing token-ID executor, and decode the generated IDs back into text. Unlike the llama.cpp service, this is **not a chat endpoint**. Tokenizer-to-checkpoint identity, appropriate BOS/EOS tokens, and instruct chat templates are **not verified**; even readable output is not proof of model correctness.
+
+For the optional local tokenizer parser, install PhiServe's `phistream-text` extra in a trusted environment alongside the independently installed PhiStream package. No tokenizer/model file is downloaded by the application itself.
+
+~~~powershell
+phiserve phistream tokenizer-check research-llama --tokenizer "D:\\Models\\Llama\\tokenizer.json" --prompt "Hello" --tokens 4
+phiserve phistream text-lab research-llama --tokenizer "D:\\Models\\Llama\\tokenizer.json" --prompt "Hello" --tokens 4 --device cpu --capacity-mib 4096 --approve-local-execution --output ".\\receipts\\phistream-text.json" --show-output
+~~~
+
+`tokenizer-check` never executes weights. `text-lab` requires explicit approval and records only hashes, lengths and uncertainty flags; the transient token-ID receipt is deleted after execution. `--show-output` is opt-in and prints raw decoded text **only to the local terminal**. A plain-text prompt supplied as a CLI argument can be visible to other local processes; avoid sensitive inputs. The local model and tokenizer must come from sources you trust. See [text lab protocol](docs/PHISTREAM_TEXT_LAB.md).
+
 ## Command reference
 
 ~~~text
 phiserve phistream inspect LOCAL_CHECKPOINT_PATH
 phiserve phistream register ALIAS LOCAL_CHECKPOINT_PATH --source SOURCE --revision REV --license-id LICENSE
 phiserve phistream list
+phiserve phistream tokenizer-check ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT [--tokens 4]
+phiserve phistream text-lab ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --capacity-mib MIB --approve-local-execution --output NEW_JSON [--show-output]
 phiserve phistream remove ALIAS
 phiserve phistream run-ids ALIAS --prompt 1,2,3 --tokens 4 --device cpu --capacity-mib 4096 --reserve-mib 1024 --approve-local-execution --output NEW_JSON
 phiserve models add ALIAS PATH
