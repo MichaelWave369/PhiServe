@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.7.0 experimental, including optional local PhiStream text-tokenizer research.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.8.0 experimental, with a governed local PhiStream reference-parity gate.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -124,6 +124,19 @@ phiserve phistream text-lab research-llama --tokenizer "D:\\Models\\Llama\\token
 
 `tokenizer-check` never executes weights. `text-lab` requires explicit approval and records only hashes, lengths and uncertainty flags; the transient token-ID receipt is deleted after execution. `--show-output` is opt-in and prints raw decoded text **only to the local terminal**. A plain-text prompt supplied as a CLI argument can be visible to other local processes; avoid sensitive inputs. The local model and tokenizer must come from sources you trust. See [text lab protocol](docs/PHISTREAM_TEXT_LAB.md).
 
+## PhiStream reference parity gate (Rung 8)
+
+A text lab can decode readable output without proving correctness. PhiServe now integrates PhiStream's existing **strict user-supplied reference comparator**. It first checks that the explicit local `tokenizer.json` encodes your exact prompt into the *same token IDs* contained in a local `PHISTREAM_REFERENCE_TRACE_V1` JSON. The reference must declare a separately run implementation and contain at least **32 generated-token steps** for execution.
+
+~~~powershell
+phiserve phistream parity-preflight research-llama --tokenizer "D:\\Models\\Llama\\tokenizer.json" --prompt "Hello" --trace ".\\reference-trace.json"
+phiserve phistream parity-run research-llama --tokenizer "D:\\Models\\Llama\\tokenizer.json" --prompt "Hello" --trace ".\\reference-trace.json" --device cpu --capacity-mib 8192 --reserve-mib 1024 --approve-local-execution --output ".\\receipts\\reference-gate.json"
+~~~
+
+The preflight only parses **local** tokenizer and checkpoint metadata and the reference trace; it does **not hash weight bytes or execute them**. During the approved parity run, PhiStream's existing `real-model-gate` checks complete checkpoint-file SHA-256 against the reference *before* decoding, applies its memory policy, and compares greedy IDs and sampled logits under teacher forcing. The final receipt records counts and hashes, not raw prompts, reference values, or generated text.
+
+**A match is not authenticated independent proof.** The trace and runtime provenance are still operator-declared. No live chat routes or research aliases are activated by a matched result. See [reference parity gate](docs/PHISTREAM_REFERENCE_GATE.md).
+
 ## Command reference
 
 ~~~text
@@ -132,6 +145,8 @@ phiserve phistream register ALIAS LOCAL_CHECKPOINT_PATH --source SOURCE --revisi
 phiserve phistream list
 phiserve phistream tokenizer-check ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT [--tokens 4]
 phiserve phistream text-lab ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --capacity-mib MIB --approve-local-execution --output NEW_JSON [--show-output]
+phiserve phistream parity-preflight ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --trace REFERENCE_JSON
+phiserve phistream parity-run ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --trace REFERENCE_JSON --device cpu --capacity-mib MIB --approve-local-execution --output NEW_JSON
 phiserve phistream remove ALIAS
 phiserve phistream run-ids ALIAS --prompt 1,2,3 --tokens 4 --device cpu --capacity-mib 4096 --reserve-mib 1024 --approve-local-execution --output NEW_JSON
 phiserve models add ALIAS PATH

@@ -65,7 +65,18 @@
 - [ ] Chat-template, BOS/EOS, context growth, cancellation and streaming validation
 - [ ] Physical 5070 execution with licensed local weights and independent-reference parity
 
-## Rung 8: ecosystem adapters
+## Rung 8: PhiStream reference parity verification (experimental)
+
+- [x] Bind a local tokenizer's encoded prompt IDs to the supplied reference trace
+- [x] Strict PhiStream trace schema/shape checks with >=32-step execution gate
+- [x] Reuse PhiStream's memory-preflight, complete checkpoint SHA256 and teacher-forced greedy/logit comparator
+- [x] Refuse mismatched tokens, changed inputs, inconsistent receipts, incomplete execution, and missing approval
+- [x] No raw prompts or generated tokens in durable PhiServe summary; independent provenance remains unauthenticated
+- [ ] Physically run licensed compatible checkpoint/reference pair on operator hardware
+- [ ] Authenticate truly separate reference implementation and tokenizer provenance
+- [ ] Extend BOS/EOS/chat template alignment and decode-to-text parity before production service promotion
+
+## Rung 9: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests
