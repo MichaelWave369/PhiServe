@@ -37,9 +37,9 @@ export const ECOSYSTEM_APPS = Object.freeze([
   },
   {
     id:'thinktank',name:'Think Tank',role:'Multi-agent deliberation and Reality Gate',
-    status:'ADAPTER PR',stage:'review',
-    detail:'PR #55 adds an explicit bearer-authenticated local PhiServe mode. The existing council governance remains authoritative.',
-    direction:'Think Tank → PhiServe',next:'Merge reviewed adapter and validate against an actual local GGUF and daemon.',
+    status:'ADAPTER IN CODE',stage:'adapter',
+    detail:'Merged PR #55 adds bearer-authenticated PhiServe mode to Think Tank’s local Node bridge. Council governance remains authoritative; hardware connection still needs field testing.',
+    direction:'Think Tank → PhiServe',next:'Validate the merged adapter with an actual locally running PhiServe daemon, registered GGUF and busy-model handling.',
     repo:'https://github.com/MichaelWave369/think-tank',
     pr:'https://github.com/MichaelWave369/think-tank/pull/55',
   },

@@ -18,8 +18,8 @@ test('research is never silently promoted to production backend',()=>{
   assert.equal(INVENTORY_SCOPE,'STATIC_CODE_REVIEW_NOT_LIVE_DISCOVERY');
   assert.equal(ECOSYSTEM_APPS.find(x=>x.id==='phistream').stage,'research');
   assert.equal(ECOSYSTEM_APPS.find(x=>x.id==='pocketbrain').stage,'adapter');
-  assert.equal(ECOSYSTEM_APPS.find(x=>x.id==='thinktank').stage,'review');
-  assert.deepEqual(inventoryCounts(),{listed:6,wired:1,inReview:1,research:1,planned:3});
+  assert.equal(ECOSYSTEM_APPS.find(x=>x.id==='thinktank').stage,'adapter');
+  assert.deepEqual(inventoryCounts(),{listed:6,wired:2,inReview:0,research:1,planned:3});
 });
 
 test('BrainC recipe and PocketBrain browser weights are not treated as native GGUF assets',()=>{

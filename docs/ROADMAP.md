@@ -114,7 +114,7 @@
 - [x] Source-reviewed six-project capability and direction matrix
 - [x] Interactive static React Ecosystem view without invented runtime health
 - [x] PocketBrain's dedicated PhiServe provider already exists
-- [x] Think Tank opt-in local PhiServe adapter proposed in its separate PR #55
+- [x] Think Tank opt-in local PhiServe adapter merged in PR #55
 - [ ] Operator field-accept Think Tank PR #55 and PocketBrain on a real same-device local daemon
 - [ ] BrainC persona-preserving backend client
 - [ ] GAIA opt-in local text backend, separate from deterministic readings

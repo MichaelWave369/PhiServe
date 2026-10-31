@@ -11,7 +11,7 @@ This is a **source-reviewed inventory**, not a live device scan, authority grant
 | [BrainC](https://github.com/MichaelWave369/BrainC) | Assistant, prompts, tools, memory | Future consumer, reuse compatible GGUF weights | Modelfile references `qwen2.5:14b`; weights not in repository |
 | [SuperPhiVessel](https://github.com/MichaelWave369/SuperPhiVessel) | Governed orchestration, permissions and model routing | Future client | Not wired; governance stays in Vessie |
 | [GAIA](https://github.com/MichaelWave369/GypsyAI) | Symbolic assistant and browser model research | Future optional client | Existing experiments, but no reviewed PhiServe client |
-| [Think Tank](https://github.com/MichaelWave369/think-tank) | Governed multi-agent deliberation | Local Node provider calls PhiServe | [PR #55](https://github.com/MichaelWave369/think-tank/pull/55) implements adapter; pending merge/physical field test |
+| [Think Tank](https://github.com/MichaelWave369/think-tank) | Governed multi-agent deliberation | Local Node provider calls PhiServe | [PR #55](https://github.com/MichaelWave369/think-tank/pull/55) merged on Oct 31, 2026; real local field test pending |
 
 **Runtime directions matter:** PhiServe does **not** need to import memories, tools, identities or orchestration code from these apps. It should serve locally held, separately licensed GGUF checkpoints; clients supply their own prompts, memory scope, decisions and authorization. PhiStream is distinct from downloaded pretrained weights and cannot simply be treated as another GGUF chat model. PocketBrain's WebLLM/ONNX browser models are not GGUF binaries the Python daemon can import.
 
@@ -38,7 +38,7 @@ PhiStream safetensors research remains separate from production chat.
 
 ## Recommended order
 
-1. Merge and run [Think Tank PR #55](https://github.com/MichaelWave369/think-tank/pull/55) locally against PhiServe.
+1. Field-test merged [Think Tank PR #55](https://github.com/MichaelWave369/think-tank/pull/55) locally against PhiServe.
 2. Perform same-machine acceptance of PocketBrain's existing PhiServe adapter.
 3. Add BrainC's opt-in local model backend while keeping its memory/tool authorization.
 4. Add GAIA scoped inference only with explicit user consent to transmit selected text to localhost.

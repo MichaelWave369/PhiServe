@@ -16,7 +16,7 @@ The page hosts **no model inference, weights, token database or cloud backend**.
 
 ## Shared ecosystem integrations (Rung 12)
 
-The React console now includes a **source-reviewed Ecosystem map** of PhiStream, PocketBrain, BrainC, Vessie, GAIA (in GypsyAI), and Think Tank. It distinguishes research-only inference, an existing PocketBrain PhiServe client, a proposed Think Tank adapter, and projects that still need scoped provider work. This is **not live connectivity discovery**.
+The React console now includes a **source-reviewed Ecosystem map** of PhiStream, PocketBrain, BrainC, Vessie, GAIA (in GypsyAI), and Think Tank. It distinguishes research-only inference, an existing PocketBrain PhiServe client, a merged Think Tank adapter, and projects that still need scoped provider work. This is **not live connectivity discovery**.
 
 Read [the integration boundaries and phased plan](docs/ECOSYSTEM_BRIDGES.md) before changing any other application's memory, model or permission routing. PhiServe handles local GGUF inference; each consumer retains its own identity, persona, memory and governance.
 
