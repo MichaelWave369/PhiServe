@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.2.0 experimental, Ollama text-API subset.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.3.0 experimental, Ollama text-API subset and read-only model reuse.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -61,12 +61,27 @@ Default streaming produces **NDJSON** (one Ollama-format JSON object per line), 
 
 **Supported request subset:** text messages and prompt, optional `system` for generation, `raw` generation, `stream`, and selected `options`: `temperature`, `top_p`, `seed`, `num_predict`, `stop`. Unsupported fields, including images, tools, `format`, `think`, `keep_alive`, and `num_ctx`, return HTTP 422 rather than being silently ignored. In particular `/api/generate` uses model chat-template formatting by default; `raw:true` uses the literal completion endpoint. Compatibility is intentionally limited; not all Ollama clients work yet. `/api/tags` advertises only the actively served model, with real file size and modified time when available; it does not invent digest, family, or quantization metadata.
 
+## Reuse your Ollama models and validate real inference (Rung 3)
+
+PhiServe can discover supported **GGUF model-weight layers already downloaded by Ollama**, register their existing blobs by reference (no duplicate downloads), and run an operator-requested real inference smoke test. The importer never modifies the Ollama model store. See [Rung 3 guide](docs/OLLAMA_IMPORT_AND_VALIDATION.md) for commands, integrity checks, and hardware-evidence limits.
+
+~~~powershell
+phiserve models discover-ollama
+phiserve models import-ollama qwen3:4b --verify-sha256
+phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\llama-server.exe" --gpu-layers 20 --output ".\\receipts\\smoke.json"
+~~~
+
+Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
+
 ## Command reference
 
 ~~~text
 phiserve models add ALIAS PATH
 phiserve models list
 phiserve models remove ALIAS
+phiserve models discover-ollama [--root ROOT]
+phiserve models import-ollama MODEL [--alias ALIAS] [--root ROOT] [--verify-sha256]
+phiserve validate ALIAS --llama-server PATH --output NEW_JSON [--gpu-layers N]
 phiserve serve ALIAS [--llama-server PATH] [--port 11435] [--backend-port 11436] [--ctx-size 4096] [--gpu-layers 0] [--startup-timeout 120]
 ~~~
 

@@ -64,8 +64,8 @@ class ModelRegistry:
 
     @staticmethod
     def _check_gguf(path: Path) -> None:
-        if not path.is_file() or path.suffix.lower() != ".gguf":
-            raise RegistryError("Select an existing .gguf model file")
+        if not path.is_file() or (path.suffix.lower() != ".gguf" and re.fullmatch(r"sha256-[a-f0-9]{64}", path.name) is None):
+            raise RegistryError("Select an existing .gguf or an Ollama sha256 model blob")
         try:
             with path.open("rb") as stream:
                 magic = stream.read(4)
