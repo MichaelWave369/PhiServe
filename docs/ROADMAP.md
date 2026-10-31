@@ -19,8 +19,11 @@
 - Cross-process registry locks, race-safe port reservations, clear error reporting
 - Isolated binary and checkpoint provenance checks
 
-## Rung 3: model lifecycle
+## Rung 3: model lifecycle (in progress)
 
+- [x] Read-only Ollama GGUF model manifest discovery and reference import
+- [x] Optional full SHA-256 check for imported blob
+- [x] Operator-run local inference smoke receipt (hardware execution still pending)
 - Integrity-checked downloads with explicit consent, resume and per-model license display
 - Disk quotas, remove/import, GGUF metadata parsing, configuration profiles
 - Hardware-aware resource estimates, tested GPU fallback and scheduler

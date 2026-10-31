@@ -9,6 +9,8 @@ import sys
 from . import __version__
 from .backend import LlamaBackend
 from .registry import ModelRegistry, RegistryError
+from .ollama_store import OllamaStoreError, discover, import_model
+from .validation import validate_local
 from .server import make_server
 
 
@@ -26,6 +28,14 @@ def parser() -> argparse.ArgumentParser:
     remove = model_commands.add_parser("remove")
     remove.add_argument("alias")
 
+    discover_cmd = model_commands.add_parser("discover-ollama", help="Read existing Ollama manifests without modifying them")
+    discover_cmd.add_argument("--root", help="Ollama models directory (otherwise OLLAMA_MODELS / user default)")
+    import_cmd = model_commands.add_parser("import-ollama", help="Register one existing GGUF blob without copying weights")
+    import_cmd.add_argument("model", help="Exact name shown by discover-ollama, such as qwen2.5:7b")
+    import_cmd.add_argument("--alias", help="Override automatically derived PhiServe alias")
+    import_cmd.add_argument("--root", help="Ollama models directory")
+    import_cmd.add_argument("--verify-sha256", action="store_true", help="Read/hash entire model blob against manifest")
+
     serve = commands.add_parser("serve", help="Start supervised llama.cpp and the loopback HTTP API")
     serve.add_argument("alias")
     serve.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
@@ -34,6 +44,14 @@ def parser() -> argparse.ArgumentParser:
     serve.add_argument("--ctx-size", type=int, default=4096)
     serve.add_argument("--gpu-layers", type=int, default=0)
     serve.add_argument("--startup-timeout", type=float, default=120)
+    validate = commands.add_parser("validate", help="Run an actual local model and write an observation receipt")
+    validate.add_argument("alias")
+    validate.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
+    validate.add_argument("--output", required=True, help="New JSON file; existing files are never overwritten")
+    validate.add_argument("--backend-port", type=int, default=11436)
+    validate.add_argument("--ctx-size", type=int, default=2048)
+    validate.add_argument("--gpu-layers", type=int, default=0)
+    validate.add_argument("--startup-timeout", type=float, default=120)
     return root
 
 
@@ -54,6 +72,30 @@ def main(argv: list[str] | None = None) -> int:
             elif args.action == "remove":
                 registry.remove(args.alias)
                 print(f"Removed model alias {args.alias}; model file preserved.")
+            elif args.action == "discover-ollama":
+                models, warnings = discover(args.root)
+                for entry in models:
+                    print(f"{entry.name}\t{entry.size} bytes\talias={entry.alias}")
+                print(f"Discovered {len(models)} supported local Ollama GGUF model(s).")
+                for warning in warnings:
+                    print(f"Skipped: {warning}", file=sys.stderr)
+            elif args.action == "import-ollama":
+                entry = import_model(args.model, alias=args.alias, root=args.root,
+                                     verify_sha256=args.verify_sha256, registry=registry)
+                print(f"Registered Ollama {entry.name} as {args.alias or entry.alias} (read-only, no weight copy).")
+                if not args.verify_sha256:
+                    print("Note: manifest checksum was not recalculated; use --verify-sha256 to verify all model bytes.")
+            return 0
+
+        if args.command == "validate":
+            if not (1 <= args.backend_port <= 65535) or args.ctx_size <= 0 or args.gpu_layers < 0 or args.startup_timeout <= 0:
+                raise RegistryError("Invalid validation backend port, context, layer count, or timeout")
+            receipt = validate_local(args.alias, args.llama_server, args.output,
+                                     backend_port=args.backend_port, ctx_size=args.ctx_size,
+                                     gpu_layers=args.gpu_layers, startup_timeout=args.startup_timeout,
+                                     registry=registry)
+            print(f"Local generation observed; receipt saved: {args.output}")
+            print(f"Result: {receipt[\x27status\x27]}. GPU execution is NOT independently verified.")
             return 0
 
         if not (1 <= args.port <= 65535 and 1 <= args.backend_port <= 65535):
@@ -82,7 +124,7 @@ def main(argv: list[str] | None = None) -> int:
             finally:
                 server.server_close()
         return 0
-    except (RegistryError, RuntimeError, OSError) as exc:
+    except (RegistryError, OllamaStoreError, RuntimeError, OSError, ValueError) as exc:
         print(f"PhiServe error: {exc}", file=sys.stderr)
         return 2
 
