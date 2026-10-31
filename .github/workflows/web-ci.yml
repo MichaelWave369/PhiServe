@@ -1,0 +1,41 @@
+name: React Console CI
+
+on:
+  pull_request:
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-ci.yml'
+      - '.github/workflows/web-pages.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'web/**'
+      - '.github/workflows/web-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: React tests and Vite build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install React console dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test API security and NDJSON streams
+        run: npm run test
+      - name: Build static GitHub Pages bundle
+        run: npm run build
+      - name: Verify Pages base and entry assets
+        run: |
+          test -f dist/index.html
+          test -f dist/favicon.svg
+          grep -q '/PhiServe/assets/' dist/index.html
