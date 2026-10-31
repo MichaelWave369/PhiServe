@@ -97,7 +97,19 @@
 - [ ] Perform a physical registered-model RTX 5070 field run and independently inspect the real logs
 - [ ] Add operator-provided signed witness, hardware-derived CUDA activity/latency evidence and backend-specific attribution
 
-## Rung 11: ecosystem adapters
+## Rung 11: React visual console and GitHub Pages
+
+- [x] Responsive static React console with documented demo-only UI
+- [x] Opt-in authenticated, same-device local PhiServe health, model catalog, resident model and NDJSON chat
+- [x] Memory-only bearer token and strict loopback URL validation; no hosted inference, persistence or remote-device fallback
+- [x] Hardware field-lab command walkthrough without browser-side local process execution
+- [x] GitHub Pages deployment workflow and frontend API contract tests
+- [ ] Confirm actual GitHub Pages deployment after merging PR and project settings
+- [ ] Physical browser↔daemon acceptance on operator hardware (CORS/LNA/PNA)
+- [ ] Dedicated origin or separately secured remote gateway for phones/Quest
+- [ ] Future GUI workflows for research receipts only after safe local API designs
+
+## Rung 12: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests

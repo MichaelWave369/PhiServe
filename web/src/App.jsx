@@ -320,7 +320,7 @@ export default function App() {
             <h2>{live ? 'Connected to your local runtime.' : 'Built to run on your terms.'}</h2>
             <p>{live ? 'Your requests go only to the loopback daemon configured below. The browser token stays in memory for this tab.' :
               'Explore the interface freely. When you want real inference, pair this tab with your own running PhiServe daemon on the same computer.'}</p>
-            <div className="hero-actions"><button className="primary-button" onClick={() => setView(live ? 'playground' : 'overview')}>
+            <div className="hero-actions"><button className="primary-button" onClick={() => setView(live ? 'playground' : 'models')}>
               {live ? 'Open playground' : 'Explore the console'} <span>↗</span></button>
               <a href={GH + '/blob/main/docs/BROWSER_BRIDGE.md'} target="_blank" rel="noopener noreferrer" className="quiet-link">SETUP GUIDE ↗</a></div>
           </div>

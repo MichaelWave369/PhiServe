@@ -11,7 +11,7 @@ export function normalizeEndpoint(value) {
   const hosts = ['localhost', '127.0.0.1', '[::1]'];
   if (url.protocol !== 'http:' || !hosts.includes(url.hostname) ||
       (url.pathname !== '/' && url.pathname !== '') || url.search || url.hash ||
-      url.username || url.password || !url.port) {
+      url.username || url.password || !url.port || Number(url.port) < 1) {
     throw new Error('Only an explicit HTTP loopback endpoint with a port is allowed. No remote hosts, URL credentials, paths or query strings.');
   }
   return url.origin;
