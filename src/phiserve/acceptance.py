@@ -227,7 +227,39 @@ def _gguf(result: dict, kind: str) -> dict:
     _require(type(layers) is int and layers >= 0, f"Invalid {kind} GPU layers")
     _require(layers == 0 if kind == "cpu" else layers > 0,
              f"{kind} receipt has incorrect GPU-layer request")
+    telemetry = result.get("gpu_process_telemetry")
+    observation = None
+    if telemetry is not None:
+        _require(isinstance(telemetry, dict)
+                 and telemetry.get("schema") == "PHISERVE_NVIDIA_PROCESS_SAMPLE_V1"
+                 and telemetry.get("cuda_kernel_execution_independently_verified") is False
+                 and telemetry.get("physical_hardware_witnessed") is False,
+                 "Untrusted or contradictory GPU process telemetry receipt")
+        allowed = {
+            "PROCESS_MEMORY_DRIVER_SELF_REPORT", "PROCESS_PRESENT_MEMORY_UNAVAILABLE",
+            "NVIDIA_SMI_UNAVAILABLE", "NVIDIA_SMI_QUERY_FAILED",
+            "NO_MATCHING_COMPUTE_PROCESS_OBSERVED", "SAMPLER_DID_NOT_STOP",
+        }
+        status = telemetry.get("status")
+        _require(status in allowed, "Unrecognized GPU process telemetry status")
+        attempted = _positive(telemetry.get("sample_attempts"), "GPU sampling attempts", 0)
+        matched = _positive(telemetry.get("matching_pid_samples"), "matching PID samples", 0)
+        numeric = _positive(telemetry.get("numeric_memory_samples"), "numeric GPU memory samples", 0)
+        peak = telemetry.get("peak_driver_reported_process_memory_mib")
+        _require(matched <= attempted and numeric <= matched
+                 and ((type(peak) is int and peak >= 0) if numeric else peak is None)
+                 and (status == "PROCESS_MEMORY_DRIVER_SELF_REPORT") == (numeric > 0),
+                 "Contradictory GPU process-memory observation counts")
+        observation = {
+            "status": status,
+            "sampling_attempts": attempted,
+            "matching_pid_samples": matched,
+            "numeric_memory_samples": numeric,
+            "peak_driver_reported_process_memory_mib": peak,
+            "cuda_execution_independently_verified": False,
+        }
     return {
+        "gpu_process_observation": observation,
         "model_alias": _identity(result.get("model_alias"), f"{kind} model alias"),
         "model_filename": _identity(result.get("model_filename"), f"{kind} model filename"),
         "model_size_bytes": _positive(result.get("model_size_bytes"), "model size"),

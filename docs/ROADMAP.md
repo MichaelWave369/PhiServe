@@ -86,7 +86,18 @@
 - [ ] Execute and review physical CPU/CUDA experiments and licensed checkpoints on operator hardware
 - [ ] Capture runtime-generated process-attributed GPU telemetry and signed independent-reference evidence
 
-## Rung 10: ecosystem adapters
+## Rung 10: optional GPU process sampling during operator-run GGUF inference
+
+- [x] One-command `acceptance field-run` invokes the existing real GGUF smoke test locally
+- [x] Capture child PID from the PhiServe-supervised llama.cpp process, not a user-guessed PID
+- [x] Opt-in bounded `nvidia-smi` compute-process memory sampling around inference
+- [x] Explicitly handle Windows WDDM N/A, no matching process, missing tool, failed query
+- [x] Attach bounded driver-reported observations to the established private GGUF receipt
+- [x] Review telemetry counts without falsely asserting independently witnessed CUDA execution
+- [ ] Perform a physical registered-model RTX 5070 field run and independently inspect the real logs
+- [ ] Add operator-provided signed witness, hardware-derived CUDA activity/latency evidence and backend-specific attribution
+
+## Rung 11: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests

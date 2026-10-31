@@ -19,6 +19,7 @@ from .phistream_lab import PhiStreamCatalog, PhiStreamLabError, probe_checkpoint
 from .phistream_text import encode_prompt, text_lab
 from .phistream_parity import preflight_reference, run_reference_gate
 from .acceptance import AcceptanceError, doctor, acceptance_report
+from .field_telemetry import ProcessMemorySampler
 
 
 def parser() -> argparse.ArgumentParser:
@@ -158,6 +159,18 @@ def parser() -> argparse.ArgumentParser:
     review.add_argument("--phistream-text", help="Existing PhiStream text-lab research receipt")
     review.add_argument("--phistream-parity", help="Existing PhiStream parity-run reference receipt")
     review.add_argument("--output", required=True, help="New minimal JSON report; never overwrite")
+    field = acceptance_modes.add_parser(
+        "field-run", help="Run an actual local GGUF inference and optionally sample its child GPU process",
+    )
+    field.add_argument("alias", help="Registered local GGUF model alias")
+    field.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
+    field.add_argument("--backend-port", type=int, default=11436)
+    field.add_argument("--ctx-size", type=int, default=2048)
+    field.add_argument("--gpu-layers", type=int, default=0)
+    field.add_argument("--startup-timeout", type=float, default=120)
+    field.add_argument("--sample-nvidia", action="store_true",
+                       help="Query local nvidia-smi for memory reported under PhiServe's child process PID")
+    field.add_argument("--output", required=True, help="New private JSON model observation receipt")
     return root
 
 
@@ -244,6 +257,20 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "acceptance":
+            if args.action == "field-run":
+                if (not 1 <= args.backend_port <= 65535 or args.ctx_size <= 0
+                        or args.gpu_layers < 0 or args.startup_timeout <= 0):
+                    raise AcceptanceError("Invalid backend port, context, GPU layers or timeout")
+                sampler = ProcessMemorySampler() if args.sample_nvidia else None
+                receipt = validate_local(
+                    args.alias, args.llama_server, args.output,
+                    backend_port=args.backend_port, ctx_size=args.ctx_size,
+                    gpu_layers=args.gpu_layers, startup_timeout=args.startup_timeout,
+                    registry=registry, sampler=sampler,
+                )
+                print(json.dumps(receipt, indent=2, sort_keys=True))
+                print("This is an operator-run local observation, NOT independently witnessed CUDA inference.")
+                return 0
             if args.action == "doctor":
                 result = doctor(
                     args.output, llama_server=args.llama_server,
