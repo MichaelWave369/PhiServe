@@ -45,7 +45,16 @@
 - [ ] Real browser acceptance on the operator's machine with actual model weights
 - [ ] Separately designed secure remote-device gateway (no direct LAN listener)
 
-## Rung 6: ecosystem adapters
+## Rung 6: PhiStream experimental weight bridge
+
+- [x] Isolated research checkpoint catalog for user-supplied canonical Llama safetensors
+- [x] Reuse PhiStream's own strict metadata layout inspection; no weight duplication
+- [x] Explicit, locally approved token-ID runner with bounded input and receipts
+- [x] Keep research aliases out of GGUF / Ollama / OpenAI chat catalogs
+- [ ] Validate with a real licensed local checkpoint and independent reference parity
+- [ ] Tokenizer, EOS/chat-template, text streaming and safe subprocess lifecycle before enabling a native chat backend
+
+## Rung 7: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests

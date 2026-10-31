@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.5.0 experimental, opt-in authenticated browser bridge.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.6.0 experimental, with a separate PhiStream safetensors research lane.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -98,9 +98,27 @@ Enter that file's token into the trusted browser application's API-key setting, 
 
 `--browser-origin` requires an exact HTTPS origin (HTTP is allowed only for localhost development), and **must** be paired with `--api-key-file`. Cross-origin preflight checks are strict, and the server acknowledges private-network preflights only for that trusted origin. Browser support depends on the browser's Private Network Access / Local Network Access permissions and HTTPS-to-loopback rules; this is **not guaranteed to work in every browser**, nor does it make the desktop accessible to PocketBrain on a different physical device. For phone-to-desktop access, a separately designed authenticated, encrypted gateway is still needed. See [browser bridge security](docs/BROWSER_BRIDGE.md).
 
+## PhiStream checkpoints and experimental weights (Rung 6)
+
+PhiServe can now **refer to an existing, licensed local safetensors checkpoint** supported by PhiStream without copying, converting, uploading or downloading weights. This is an opt-in research feature, **not** a second production chat backend. PhiStream's strict canonical-Llama inspector is invoked only if you independently install PhiStream into the same environment.
+
+~~~powershell
+phiserve phistream inspect "D:\\Models\\CompatibleLlamaSafetensors"
+phiserve phistream register research-llama "D:\\Models\\CompatibleLlamaSafetensors" --source "DECLARED_SOURCE" --revision "DECLARED_REV" --license-id "DECLARED_LICENSE"
+phiserve phistream list
+phiserve phistream run-ids research-llama --prompt 1,2,3 --tokens 4 --device cpu --approve-local-execution --output ".\\receipts\\phistream-ids.json"
+~~~
+
+The input is **numeric token IDs**, not natural-language text. A successful check is not a trained-weight accuracy, GPU performance, or independent-reference parity certification. Research aliases are stored **separately** and never appear in PhiServe's Ollama/OpenAI chat model lists. See [PhiStream checkpoint bridge](docs/PHISTREAM_WEIGHT_BRIDGE.md) and the [PhiStream repository](https://github.com/MichaelWave369/PhiStream) for strict architecture limits.
+
 ## Command reference
 
 ~~~text
+phiserve phistream inspect LOCAL_CHECKPOINT_PATH
+phiserve phistream register ALIAS LOCAL_CHECKPOINT_PATH --source SOURCE --revision REV --license-id LICENSE
+phiserve phistream list
+phiserve phistream remove ALIAS
+phiserve phistream run-ids ALIAS --prompt 1,2,3 --tokens 4 --device cpu --approve-local-execution --output NEW_JSON
 phiserve models add ALIAS PATH
 phiserve models list
 phiserve models remove ALIAS
