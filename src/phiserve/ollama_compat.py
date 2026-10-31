@@ -203,7 +203,7 @@ def _sse_frames(response):
             data.append(chunk.decode("utf-8"))
 
 
-def _send_stream(handler, route: str, alias: str, response, started_ns: int) -> None:
+def _send_stream(handler, route: str, alias: str, response, started_ns: int, is_chat: bool) -> None:
     handler.send_response(200)
     handler.send_header("Content-Type", "application/x-ndjson")
     handler.send_header("Cache-Control", "no-store")
@@ -232,7 +232,7 @@ def _send_stream(handler, route: str, alias: str, response, started_ns: int) -> 
                 raise ValueError("Backend returned invalid choices")
             if choices:
                 choice = choices[0]
-                content = _content(choice, route == "/api/chat", True)
+                content = _content(choice, is_chat, True)
                 if content:
                     emit(_convert_payload(route, alias, content, False))
                 if choice.get("finish_reason") is not None:
@@ -248,7 +248,7 @@ def _send_stream(handler, route: str, alias: str, response, started_ns: int) -> 
             pass
 
 
-def _send_single(handler, route: str, alias: str, response, started_ns: int) -> None:
+def _send_single(handler, route: str, alias: str, response, started_ns: int, is_chat: bool) -> None:
     body = response.read(MAX_REPLY_BYTES + 1)
     if len(body) > MAX_REPLY_BYTES:
         handler._json(502, {"error": "Local backend response exceeded size limit"})
@@ -261,7 +261,7 @@ def _send_single(handler, route: str, alias: str, response, started_ns: int) -> 
         if not isinstance(choices, list) or not choices:
             raise ValueError("Backend returned no choices")
         first = choices[0]
-        content = _content(first, route == "/api/chat", False)
+        content = _content(first, is_chat, False)
         reason = first.get("finish_reason")
     except (ValueError, TypeError, AttributeError):
         handler._json(502, {"error": "Local inference backend returned an incompatible response"})
@@ -287,9 +287,9 @@ def handle_ollama(handler, route: str, request: dict) -> None:
             handler._json(502, {"error": f"Local inference backend HTTP {response.status}"})
             return
         if stream:
-            _send_stream(handler, route, handler.server.model_alias, response, started_ns)
+            _send_stream(handler, route, handler.server.model_alias, response, started_ns, target == "/v1/chat/completions")
         else:
-            _send_single(handler, route, handler.server.model_alias, response, started_ns)
+            _send_single(handler, route, handler.server.model_alias, response, started_ns, target == "/v1/chat/completions")
     except (OSError, http.client.HTTPException):
         if not handler.wfile.closed:
             try:
