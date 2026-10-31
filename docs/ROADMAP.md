@@ -109,7 +109,19 @@
 - [ ] Dedicated origin or separately secured remote gateway for phones/Quest
 - [ ] Future GUI workflows for research receipts only after safe local API designs
 
-## Rung 12: ecosystem adapters
+## Rung 12: ecosystem integration inventory and first client adapters
+
+- [x] Source-reviewed six-project capability and direction matrix
+- [x] Interactive static React Ecosystem view without invented runtime health
+- [x] PocketBrain's dedicated PhiServe provider already exists
+- [x] Think Tank opt-in local PhiServe adapter merged in PR #55
+- [ ] Operator field-accept Think Tank PR #55 and PocketBrain on a real same-device local daemon
+- [ ] BrainC persona-preserving backend client
+- [ ] GAIA opt-in local text backend, separate from deterministic readings
+- [ ] Vessie role-scoped model selection without inference granting execution authority
+- [ ] PhiStream production serving only after independent real-weight/tokenizer parity and concurrency/cancellation acceptance
+
+## Rung 13: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests

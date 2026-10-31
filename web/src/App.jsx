@@ -2,12 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import {
   DEFAULT_ENDPOINT, friendlyConnectionError, getJSON, normalizeEndpoint, streamChat,
 } from './api.js';
+import { ECOSYSTEM_APPS, INVENTORY_SCOPE, inventoryCounts } from './ecosystem.js';
 
 const GH = 'https://github.com/MichaelWave369/PhiServe';
 const PHISTREAM = 'https://github.com/MichaelWave369/PhiStream';
 const VIEWS = [
   { key: 'overview', icon: '◉', label: 'Overview', desc: 'System overview' },
   { key: 'models', icon: '▤', label: 'Model library', desc: 'Registered GGUF' },
+  { key: 'ecosystem', icon: '◎', label: 'Ecosystem', desc: 'Applications & bridges' },
   { key: 'playground', icon: '⌁', label: 'Playground', desc: 'Live local chat' },
   { key: 'field', icon: '◇', label: 'Field lab', desc: 'Hardware evidence' },
 ];
@@ -307,11 +309,13 @@ export default function App() {
           <h1>{view === 'overview' ? <>Intelligence,<br /><em>under your control.</em></> :
             view === 'models' ? <>Your models.<br /><em>One local gateway.</em></> :
             view === 'playground' ? <>Make the connection.<br /><em>Start a conversation.</em></> :
+            view === 'ecosystem' ? <>One local brain.<br /><em>Many independent tools.</em></> :
             <>Evidence before<br /><em>assumptions.</em></>}</h1>
           <p className="headline-sub">{view === 'overview' ?
             'A sovereign control surface for PhiServe. Inspect your local model runtime, explore the model catalog, and run text generation without a cloud intermediary.' :
             view === 'models' ? 'View registered GGUF model aliases. Research-only PhiStream checkpoints do not appear in the chat library.' :
             view === 'playground' ? 'A real streaming text playground when a local daemon is connected. In demo mode, responses are clearly simulated.' :
+            view === 'ecosystem' ? 'What the surrounding Φ applications actually provide, how they relate to PhiServe, and which bridges still need real acceptance.' :
             'Real hardware measurements belong on your machine. Inspect the workflow without turning test fixtures into GPU claims.'}</p></div>
           <div className="headline-number">Φ<span>369</span></div>
         </div>
@@ -372,6 +376,44 @@ export default function App() {
             </div>
           </section>
         </> : null}
+
+        {view === 'ecosystem' ? <section className="ecosystem-section">
+          <SectionHeading kicker="SOURCE-REVIEWED INTEGRATION MAP" title="The Φ ecosystem"
+            aside="Compatibility inventory · not a live connectivity scan" />
+          <div className="ecosystem-notice" role="note">
+            <strong>CODE INVENTORY, NOT ACTIVE CONNECTIONS</strong>
+            <p>These entries document reviewed architecture and adapter status. Connecting PhiServe above does not connect any other app or grant it permission to read memory, run tools or perform actions. This view makes no network calls to the listed projects.</p>
+            <code>{INVENTORY_SCOPE}</code>
+          </div>
+          <div className="ecosystem-metrics">
+            <div><strong>{inventoryCounts().listed}</strong><span>PROJECTS MAPPED</span></div>
+            <div><strong>{inventoryCounts().wired}</strong><span>ADAPTER IN CODE</span></div>
+            <div><strong>{inventoryCounts().inReview}</strong><span>ADAPTER IN REVIEW</span></div>
+            <div><strong>{inventoryCounts().research}</strong><span>RESEARCH ENGINE</span></div>
+          </div>
+          <div className="ecosystem-hub" aria-label="Shared architecture model">
+            <div className="ecosystem-hub-center"><span>Φ</span><strong>PHISERVE</strong><small>GGUF / LLAMA.CPP / LOOPBACK</small></div>
+            <p>Shared local inference, not shared identities or application permissions. PhiStream remains a separate research engine.</p>
+          </div>
+          <div className="ecosystem-grid">
+            {ECOSYSTEM_APPS.map((item) => <article className="ecosystem-card" key={item.id}>
+              <div className="ecosystem-card-top">
+                <span className="ecosystem-category">{item.role}</span>
+                <span className={'ecosystem-state ' + item.stage}>{item.status}</span>
+              </div>
+              <h3>{item.name}</h3>
+              <p className="ecosystem-direction">{item.direction}</p>
+              <p className="ecosystem-description">{item.detail}</p>
+              <div className="ecosystem-next"><strong>NEXT VALIDATION</strong><p>{item.next}</p></div>
+              <div className="ecosystem-links">
+                <a href={item.repo} target="_blank" rel="noopener noreferrer">REPOSITORY ↗</a>
+                {item.pr ? <a href={item.pr} target="_blank" rel="noopener noreferrer">ADAPTER PR ↗</a> : null}
+              </div>
+            </article>)}
+          </div>
+          <div className="info-strip"><span>◎</span><p>Only registered local GGUF models are currently offered through PhiServe chat APIs. Experimental PhiStream safetensors, browser ONNX weights and client memory are not silently imported.</p>
+            <a href={GH + '/blob/main/docs/ECOSYSTEM_BRIDGES.md'} target="_blank" rel="noopener noreferrer">INTEGRATION GUIDE ↗</a></div>
+        </section> : null}
 
         {view === 'models' ? <section className="model-section">
           <SectionHeading kicker="GGUF CATALOG" title={live ? 'Registered models' : 'Preview model shelf'}
