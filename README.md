@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.8.0 experimental, with a governed local PhiStream reference-parity gate.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.9.0 experimental, with a local hardware-readiness and evidence-review kit.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. A shared single-resident daemon and an optional, explicitly authorized PhiStream **research** lane now exist, but a GUI, full Ollama feature parity, production PhiStream chat, and remote-device serving remain future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -137,6 +137,21 @@ The preflight only parses **local** tokenizer and checkpoint metadata and the re
 
 **A match is not authenticated independent proof.** The trace and runtime provenance are still operator-declared. No live chat routes or research aliases are activated by a matched result. See [reference parity gate](docs/PHISTREAM_REFERENCE_GATE.md).
 
+## Local hardware acceptance and receipt review (Rung 9)
+
+GitHub green does **not** prove that an RTX 5070 ran a model. The new `acceptance` subcommands provide a safe, private-first way to inventory local readiness and summarize the **existing** GGUF smoke and PhiStream parity receipts without manufacturing success claims.
+
+~~~powershell
+phiserve acceptance doctor --llama-server "C:\\llama.cpp\\build\\bin\\Release\\llama-server.exe" --probe-nvidia --output ".\\receipts\\doctor.json"
+phiserve validate local-assistant --llama-server "C:\\llama.cpp\\build\\bin\\Release\\llama-server.exe" --gpu-layers 0 --output ".\\receipts\\gguf-cpu.json"
+phiserve validate local-assistant --llama-server "C:\\llama.cpp\\build\\bin\\Release\\llama-server.exe" --gpu-layers 20 --output ".\\receipts\\gguf-gpu.json"
+phiserve acceptance report --doctor-receipt ".\\receipts\\doctor.json" --cpu-gguf ".\\receipts\\gguf-cpu.json" --gpu-gguf ".\\receipts\\gguf-gpu.json" --output ".\\receipts\\acceptance-summary.json"
+~~~
+
+These are illustrative local paths: a compatible `llama-server` and real registered GGUF must already exist. GPU layers requested are not evidence that layers actually occupied the GPU. The paired comparison checks fixed-prompt output SHA-256 and model filename/size, **not byte-identical checkpoint provenance**. A difference is diagnostic; an equality is **not independent attestation**. The readiness doctor does not execute model weights or contact the internet; `--probe-nvidia` merely queries local `nvidia-smi` metadata.
+
+You can add `--phistream-text FILE` and `--phistream-parity FILE` when those existing research receipts have actually been collected. The reviewer checks matching research aliases/tokenizer digests, and correctly flags missing independent reference authentication. **No receipt combination can automatically authorize production PhiStream chat.** See [hardware acceptance guide](docs/HARDWARE_ACCEPTANCE.md).
+
 ## Command reference
 
 ~~~text
@@ -147,6 +162,8 @@ phiserve phistream tokenizer-check ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prom
 phiserve phistream text-lab ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --capacity-mib MIB --approve-local-execution --output NEW_JSON [--show-output]
 phiserve phistream parity-preflight ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --trace REFERENCE_JSON
 phiserve phistream parity-run ALIAS --tokenizer LOCAL_TOKENIZER_JSON --prompt TEXT --trace REFERENCE_JSON --device cpu --capacity-mib MIB --approve-local-execution --output NEW_JSON
+phiserve acceptance doctor --output NEW_JSON [--llama-server PATH] [--probe-nvidia]
+phiserve acceptance report --output NEW_JSON [--doctor-receipt FILE] [--cpu-gguf FILE] [--gpu-gguf FILE] [--phistream-text FILE] [--phistream-parity FILE]
 phiserve phistream remove ALIAS
 phiserve phistream run-ids ALIAS --prompt 1,2,3 --tokens 4 --device cpu --capacity-mib 4096 --reserve-mib 1024 --approve-local-execution --output NEW_JSON
 phiserve models add ALIAS PATH
