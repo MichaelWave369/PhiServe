@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 
@@ -14,6 +15,7 @@ from .ollama_store import OllamaStoreError, discover, import_model
 from .validation import validate_local
 from .server import make_server
 from .security import create_token_file, load_access
+from .phistream_lab import PhiStreamCatalog, PhiStreamLabError, probe_checkpoint, run_ids
 
 
 def parser() -> argparse.ArgumentParser:
@@ -37,6 +39,31 @@ def parser() -> argparse.ArgumentParser:
     import_cmd.add_argument("--alias", help="Override automatically derived PhiServe alias")
     import_cmd.add_argument("--root", help="Ollama models directory")
     import_cmd.add_argument("--verify-sha256", action="store_true", help="Read/hash entire model blob against manifest")
+
+    research = commands.add_parser("phistream", help="Optional, research-only local safetensors checkpoint lane")
+    actions = research.add_subparsers(dest="action", required=True)
+    inspect = actions.add_parser("inspect", help="PhiStream metadata/strict Llama preflight; no inference")
+    inspect.add_argument("path")
+    register = actions.add_parser("register", help="Register one local compatible checkpoint by path, no weight copies")
+    register.add_argument("alias")
+    register.add_argument("path")
+    register.add_argument("--source", required=True, help="User-declared weight source")
+    register.add_argument("--revision", required=True, help="User-declared checkpoint revision")
+    register.add_argument("--license-id", required=True, help="User-declared model license (not verified)")
+    actions.add_parser("list", help="Show research-only checkpoint aliases")
+    remove_research = actions.add_parser("remove", help="Delete a research alias, preserve weights")
+    remove_research.add_argument("alias")
+    execute = actions.add_parser("run-ids", help="Explicit, offline PhiStream token-ID execution (not chat)")
+    execute.add_argument("alias")
+    execute.add_argument("--prompt", required=True, help="Comma-separated token IDs, not text")
+    execute.add_argument("--tokens", type=int, default=4)
+    execute.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
+    execute.add_argument("--approve-local-execution", action="store_true")
+    execute.add_argument("--capacity-mib", type=float, required=True,
+                         help="Explicit memory preflight budget; never a guaranteed VRAM cap")
+    execute.add_argument("--reserve-mib", type=float, default=1024.0)
+    execute.add_argument("--output", required=True, help="New local JSON receipt; refuse overwrite")
+    execute.add_argument("--timeout-seconds", type=int, default=900)
 
     serve = commands.add_parser("serve", help="Start supervised llama.cpp and the loopback HTTP API")
     serve.add_argument("alias")
@@ -80,6 +107,37 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "auth":
             path = create_token_file(args.output)
             print(f"Created private token file: {path} (token not printed)")
+            return 0
+
+        if args.command == "phistream":
+            research_catalog = PhiStreamCatalog()
+            if args.action == "inspect":
+                print(json.dumps(probe_checkpoint(args.path), indent=2, sort_keys=True))
+            elif args.action == "register":
+                result = research_catalog.add(
+                    args.alias, args.path, source=args.source,
+                    revision=args.revision, license_id=args.license_id,
+                )
+                print(f"Registered PhiStream research alias {args.alias} (metadata-only, not chat-ready).")
+                print(json.dumps(result, indent=2, sort_keys=True))
+            elif args.action == "list":
+                entries = research_catalog.list()
+                if not entries:
+                    print("No PhiStream research checkpoints registered.")
+                for alias, metadata in entries.items():
+                    print(f"{alias}\t{metadata['source']} @ {metadata['revision']}\tRESEARCH_ONLY")
+            elif args.action == "remove":
+                research_catalog.remove(args.alias)
+                print(f"Removed research alias {args.alias}; checkpoint preserved.")
+            elif args.action == "run-ids":
+                result = run_ids(
+                    research_catalog, args.alias, prompt=args.prompt,
+                    tokens=args.tokens, device=args.device,
+                    output=args.output, approved=args.approve_local_execution,
+                    capacity_mib=args.capacity_mib, reserve_mib=args.reserve_mib,
+                    timeout_seconds=args.timeout_seconds,
+                )
+                print(json.dumps(result, indent=2, sort_keys=True))
             return 0
 
         if args.command == "models":
@@ -172,7 +230,7 @@ def main(argv: list[str] | None = None) -> int:
             finally:
                 server.server_close()
         return 0
-    except (RegistryError, OllamaStoreError, RuntimeError, OSError, ValueError) as exc:
+    except (RegistryError, OllamaStoreError, PhiStreamLabError, RuntimeError, OSError, ValueError) as exc:
         print(f"PhiServe error: {exc}", file=sys.stderr)
         return 2
 
