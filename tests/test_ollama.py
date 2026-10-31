@@ -24,18 +24,30 @@ class StubLlama(BaseHTTPRequestHandler):
         data = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         StubLlama.last_request = (self.path, data)
         if data.get("stream"):
-            frames = [
-                {"choices": [{"delta": {"role": "assistant"}, "finish_reason": None}]},
-                {"choices": [{"delta": {"content": "Hel"}, "finish_reason": None}]},
-                {"choices": [{"delta": {"content": "lo"}, "finish_reason": None}]},
-                {"choices": [{"delta": {}, "finish_reason": "stop"}]},
-                {"choices": [], "usage": {"prompt_tokens": 7, "completion_tokens": 2}},
-            ]
+            if self.path == "/v1/chat/completions":
+                frames = [
+                    {"choices": [{"delta": {"role": "assistant"}, "finish_reason": None}]},
+                    {"choices": [{"delta": {"content": "Hel"}, "finish_reason": None}]},
+                    {"choices": [{"delta": {"content": "lo"}, "finish_reason": None}]},
+                    {"choices": [{"delta": {}, "finish_reason": "stop"}]},
+                ]
+            else:
+                frames = [
+                    {"choices": [{"text": "Hel", "finish_reason": None}]},
+                    {"choices": [{"text": "lo", "finish_reason": None}]},
+                    {"choices": [{"text": "", "finish_reason": "stop"}]},
+                ]
+            frames.append({"choices": [], "usage": {"prompt_tokens": 7, "completion_tokens": 2}})
             blob = b"".join(b"data: " + json.dumps(x).encode() + b"\n\n" for x in frames) + b"data: [DONE]\n\n"
             content_type = "text/event-stream"
         else:
+            choice = (
+                {"message": {"role": "assistant", "content": "Hello"}, "finish_reason": "stop"}
+                if self.path == "/v1/chat/completions"
+                else {"text": "Hello", "finish_reason": "stop"}
+            )
             blob = json.dumps({
-                "choices": [{"message": {"role": "assistant", "content": "Hello"}, "text": "Hello", "finish_reason": "stop"}],
+                "choices": [choice],
                 "usage": {"prompt_tokens": 7, "completion_tokens": 2},
             }).encode()
             content_type = "application/json"
@@ -129,6 +141,10 @@ class OllamaTests(unittest.TestCase):
             frames = [json.loads(line) for line in r.readlines()]
         self.assertEqual([e["response"] for e in frames[:-1]], ["Hel", "lo"])
         self.assertTrue(frames[-1]["done"])
+        with self.post("/api/generate", {"model": "local:1", "prompt": "Hello", "raw": True}) as r:
+            raw_frames = [json.loads(line) for line in r.readlines()]
+        self.assertEqual([e["response"] for e in raw_frames[:-1]], ["Hel", "lo"])
+        self.assertTrue(raw_frames[-1]["done"])
 
     def test_unsupported_and_invalid_rejected_not_ignored(self):
         invalid = [
