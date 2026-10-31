@@ -106,7 +106,7 @@ PhiServe can now **refer to an existing, licensed local safetensors checkpoint**
 phiserve phistream inspect "D:\\Models\\CompatibleLlamaSafetensors"
 phiserve phistream register research-llama "D:\\Models\\CompatibleLlamaSafetensors" --source "DECLARED_SOURCE" --revision "DECLARED_REV" --license-id "DECLARED_LICENSE"
 phiserve phistream list
-phiserve phistream run-ids research-llama --prompt 1,2,3 --tokens 4 --device cpu --approve-local-execution --output ".\\receipts\\phistream-ids.json"
+phiserve phistream run-ids research-llama --prompt 1,2,3 --tokens 4 --device cpu --capacity-mib 4096 --reserve-mib 1024 --approve-local-execution --output ".\\receipts\\phistream-ids.json"
 ~~~
 
 The input is **numeric token IDs**, not natural-language text. A successful check is not a trained-weight accuracy, GPU performance, or independent-reference parity certification. Research aliases are stored **separately** and never appear in PhiServe's Ollama/OpenAI chat model lists. See [PhiStream checkpoint bridge](docs/PHISTREAM_WEIGHT_BRIDGE.md) and the [PhiStream repository](https://github.com/MichaelWave369/PhiStream) for strict architecture limits.
@@ -118,7 +118,7 @@ phiserve phistream inspect LOCAL_CHECKPOINT_PATH
 phiserve phistream register ALIAS LOCAL_CHECKPOINT_PATH --source SOURCE --revision REV --license-id LICENSE
 phiserve phistream list
 phiserve phistream remove ALIAS
-phiserve phistream run-ids ALIAS --prompt 1,2,3 --tokens 4 --device cpu --approve-local-execution --output NEW_JSON
+phiserve phistream run-ids ALIAS --prompt 1,2,3 --tokens 4 --device cpu --capacity-mib 4096 --reserve-mib 1024 --approve-local-execution --output NEW_JSON
 phiserve models add ALIAS PATH
 phiserve models list
 phiserve models remove ALIAS
