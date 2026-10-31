@@ -10,9 +10,10 @@
 - [x] Test registry and API using a simulated upstream
 - [ ] Operator hardware receipt with an actual GGUF and llama-server binary
 
-## Rung 2: compatibility and stability
+## Rung 2: text-compatibility and stability (in progress)
 
-- Ollama `/api/tags`, `/api/chat`, `/api/generate` (including NDJSON semantics) with real protocol tests
+- [x] Ollama text subset: `/api/tags`, `/api/chat`, `/api/generate` with NDJSON and simulated-upstream protocol tests
+- [ ] Full Ollama feature and request/response compatibility: tools, images, structured output, embeddings, `/api/show`, all options, accurate model metadata
 - OpenAI API error and streaming conformance, model metadata, optional embeddings when backend supports it
 - Graceful cancellation, timeouts, supervised restarts, request concurrency and backpressure
 - Cross-process registry locks, race-safe port reservations, clear error reporting

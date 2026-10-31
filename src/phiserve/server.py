@@ -9,19 +9,22 @@ import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlsplit
 
+from .ollama_compat import handle_ollama, model_tags
+
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
-POST_ROUTES = {"/v1/chat/completions", "/v1/completions"}
+POST_ROUTES = {"/v1/chat/completions", "/v1/completions", "/api/chat", "/api/generate"}
 
 
 class PhiServeHTTP(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address: tuple[str, int], model_alias: str, backend_port: int):
+    def __init__(self, address: tuple[str, int], model_alias: str, backend_port: int, model_path=None):
         super().__init__(address, APIHandler)
         self.model_alias = model_alias
         self.backend_port = backend_port
+        self.model_path = model_path
 
 
 class APIHandler(BaseHTTPRequestHandler):
@@ -39,7 +42,9 @@ class APIHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlsplit(self.path).path
-        if path == "/v1/models":
+        if path == "/api/tags":
+            self._json(200, model_tags(self.server.model_alias, self.server.model_path))
+        elif path == "/v1/models":
             self._json(200, {
                 "object": "list",
                 "data": [{
@@ -94,8 +99,11 @@ class APIHandler(BaseHTTPRequestHandler):
         if "stream" in request and not isinstance(request["stream"], bool):
             self._json(400, {"error": {"message": "stream must be boolean"}})
             return
-        payload = json.dumps(request, separators=(",", ":")).encode("utf-8")
-        self._forward(path, payload)
+        if path in {"/api/chat", "/api/generate"}:
+            handle_ollama(self, path, request)
+        else:
+            payload = json.dumps(request, separators=(",", ":")).encode("utf-8")
+            self._forward(path, payload)
 
     def _forward(self, path: str, payload: bytes) -> None:
         conn = http.client.HTTPConnection("127.0.0.1", self.server.backend_port, timeout=600)
@@ -126,6 +134,6 @@ class APIHandler(BaseHTTPRequestHandler):
             conn.close()
 
 
-def make_server(model_alias: str, backend_port: int, listen_port: int = 11435) -> PhiServeHTTP:
+def make_server(model_alias: str, backend_port: int, listen_port: int = 11435, model_path=None) -> PhiServeHTTP:
     # Intentionally no bind address argument until authentication is implemented.
-    return PhiServeHTTP(("127.0.0.1", listen_port), model_alias, backend_port)
+    return PhiServeHTTP(("127.0.0.1", listen_port), model_alias, backend_port, model_path)

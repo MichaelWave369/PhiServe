@@ -73,7 +73,7 @@ def main(argv: list[str] | None = None) -> int:
             startup_timeout=args.startup_timeout,
         )
         with backend:
-            server = make_server(args.alias, args.backend_port, args.port)
+            server = make_server(args.alias, args.backend_port, args.port, model_path=model_path)
             try:
                 print(f"PhiServe {__version__}: {args.alias} on http://127.0.0.1:{args.port}", flush=True)
                 server.serve_forever()
