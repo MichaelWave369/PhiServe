@@ -76,7 +76,17 @@
 - [ ] Authenticate truly separate reference implementation and tokenizer provenance
 - [ ] Extend BOS/EOS/chat template alignment and decode-to-text parity before production service promotion
 
-## Rung 9: ecosystem adapters
+## Rung 9: local hardware readiness and evidence review
+
+- [x] Local-only doctor with registered-model counts, optional nvidia-smi metadata, and binary/package readiness
+- [x] Explicitly executed CPU/GPU GGUF receipts can be reviewed side-by-side without reading model weights
+- [x] Offline PhiStream research text/parity receipt consistency and tokenizer SHA binding
+- [x] Reject swapped evidence, contradictory success counts, malformed JSON, duplicate keys, and changed input files
+- [x] Never elevate operator-supplied observations to independent GPU or reference attestation
+- [ ] Execute and review physical CPU/CUDA experiments and licensed checkpoints on operator hardware
+- [ ] Capture runtime-generated process-attributed GPU telemetry and signed independent-reference evidence
+
+## Rung 10: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests

@@ -18,6 +18,7 @@ from .security import create_token_file, load_access
 from .phistream_lab import PhiStreamCatalog, PhiStreamLabError, probe_checkpoint, run_ids
 from .phistream_text import encode_prompt, text_lab
 from .phistream_parity import preflight_reference, run_reference_gate
+from .acceptance import AcceptanceError, doctor, acceptance_report
 
 
 def parser() -> argparse.ArgumentParser:
@@ -142,6 +143,21 @@ def parser() -> argparse.ArgumentParser:
     validate.add_argument("--ctx-size", type=int, default=2048)
     validate.add_argument("--gpu-layers", type=int, default=0)
     validate.add_argument("--startup-timeout", type=float, default=120)
+
+    acceptance = commands.add_parser("acceptance", help="Local hardware readiness and conservative receipt review")
+    acceptance_modes = acceptance.add_subparsers(dest="action", required=True)
+    check = acceptance_modes.add_parser("doctor", help="Local non-inference environment check (no network)")
+    check.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
+    check.add_argument("--probe-nvidia", action="store_true",
+                       help="Opt-in local nvidia-smi GPU metadata query; not CUDA proof")
+    check.add_argument("--output", required=True, help="New JSON readiness report; never overwrite")
+    review = acceptance_modes.add_parser("report", help="Review existing local GGUF/PhiStream evidence, no model execution")
+    review.add_argument("--doctor-receipt", help="Existing acceptance doctor receipt")
+    review.add_argument("--cpu-gguf", help="Existing phiserve validate receipt with 0 GPU layers")
+    review.add_argument("--gpu-gguf", help="Existing phiserve validate receipt with >0 GPU layers")
+    review.add_argument("--phistream-text", help="Existing PhiStream text-lab research receipt")
+    review.add_argument("--phistream-parity", help="Existing PhiStream parity-run reference receipt")
+    review.add_argument("--output", required=True, help="New minimal JSON report; never overwrite")
     return root
 
 
@@ -226,6 +242,23 @@ def main(argv: list[str] | None = None) -> int:
                 if report["status"] == "REFERENCE_MISMATCH":
                     return 2
             return 0
+
+        if args.command == "acceptance":
+            if args.action == "doctor":
+                result = doctor(
+                    args.output, llama_server=args.llama_server,
+                    probe_nvidia=args.probe_nvidia, registry=registry,
+                )
+            else:
+                result = acceptance_report(
+                    args.output, doctor_receipt=args.doctor_receipt,
+                    cpu_gguf=args.cpu_gguf, gpu_gguf=args.gpu_gguf,
+                    text_receipt=args.phistream_text,
+                    parity_receipt=args.phistream_parity,
+                )
+            print(json.dumps(result, indent=2, sort_keys=True))
+            print("Receipt is local operator evidence, NOT independently witnessed GPU or parity proof.")
+            return 2 if result["status"] == "DIAGNOSTIC_MISMATCH_REQUIRES_REVIEW" else 0
 
         if args.command == "models":
             if args.action == "add":
@@ -317,7 +350,7 @@ def main(argv: list[str] | None = None) -> int:
             finally:
                 server.server_close()
         return 0
-    except (RegistryError, OllamaStoreError, PhiStreamLabError, RuntimeError, OSError, ValueError) as exc:
+    except (RegistryError, OllamaStoreError, PhiStreamLabError, AcceptanceError, RuntimeError, OSError, ValueError) as exc:
         print(f"PhiServe error: {exc}", file=sys.stderr)
         return 2
 

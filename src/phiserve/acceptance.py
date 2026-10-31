@@ -97,13 +97,15 @@ def _write_exclusive(output: str | Path, payload: dict) -> Path:
     if target.exists():
         raise AcceptanceError("Output receipt already exists; refusing overwrite")
     target.parent.mkdir(parents=True, exist_ok=True)
+    created = False
     try:
         with target.open("x", encoding="utf-8") as stream:
+            created = True
             json.dump(payload, stream, indent=2, sort_keys=True, allow_nan=False)
             stream.write("\n")
     except Exception:
-        # Avoid leaving a truncated or misleading success receipt.
-        if target.exists():
+        # Never unlink a competing process's file if exclusive creation fails.
+        if created:
             try:
                 target.unlink()
             except OSError:
@@ -246,6 +248,8 @@ def _text(result: dict) -> dict:
              "Text-lab receipt cannot store raw generated text")
     _require(result.get("chat_service_enabled") is False,
              "Production chat cannot be enabled from research receipt")
+    _require(type(result.get("tokenizer_special_tokens_applied")) is bool,
+             "Invalid text tokenizer special-token setting")
     return {
         "model_alias": _identity(result.get("model_alias"), "research model alias"),
         "tokenizer_sha256": _digest(result.get("tokenizer_sha256"), "tokenizer"),
@@ -277,6 +281,8 @@ def _parity(result: dict) -> dict:
     all_pass = matches == steps and passing_probes == total_probes
     _require((status == "USER_ASSERTED_REFERENCE_MATCH_UNAUTHENTICATED") == all_pass,
              "Parity status contradicts its comparison counts")
+    _require(type(result.get("tokenizer_special_tokens_applied")) is bool,
+             "Invalid parity tokenizer special-token setting")
     return {
         "model_alias": _identity(result.get("model_alias"), "research model alias"),
         "tokenizer_sha256": _digest(result.get("tokenizer_sha256"), "tokenizer"),
@@ -347,7 +353,7 @@ def acceptance_report(
             all(cpu[field] == gpu[field] for field in (
                 "model_alias", "model_filename", "model_size_bytes", "prompt_sha256"
             )),
-            "CPU and GPU receipts are not comparable: different alias/model bytes or prompt",
+            "CPU and GPU receipts are not comparable: different alias/model filename/size or prompt",
         )
         match = cpu["output_sha256"] == gpu["output_sha256"]
         if not match:
