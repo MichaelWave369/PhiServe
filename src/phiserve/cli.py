@@ -95,7 +95,7 @@ def main(argv: list[str] | None = None) -> int:
                                      gpu_layers=args.gpu_layers, startup_timeout=args.startup_timeout,
                                      registry=registry)
             print(f"Local generation observed; receipt saved: {args.output}")
-            print(f"Result: {receipt[\x27status\x27]}. GPU execution is NOT independently verified.")
+            print(f"Result: {receipt['status']}. GPU execution is NOT independently verified.")
             return 0
 
         if not (1 <= args.port <= 65535 and 1 <= args.backend_port <= 65535):
