@@ -44,3 +44,7 @@ Add `--phistream-text FILE` and/or `--phistream-parity FILE` if you have them. A
 - `production_phistream_chat_authorized: false` and `gpu_execution_independently_verified: false` **always**, regardless of other signals.
 
 GitHub CI runs fake GGUF and PhiStream receipt fixtures and never supplies physical proof. The next acceptance milestone is an operator-run real model experiment with independently observed GPU execution, independently executed reference trace and strict matching model/tokenizer provenance.
+
+## Rung 10 addition
+
+For a real operator-run GPU process-memory observation, prefer `phiserve acceptance field-run ALIAS --gpu-layers N --sample-nvidia --output NEW_JSON`. The [Windows field-run guide](WINDOWS_FIELD_RUN.md) covers supported and unavailable telemetry statuses. This evidence remains unauthenticated and never activates production PhiStream chat.

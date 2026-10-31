@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "phiserve"
-version = "0.9.0"
+version = "0.10.0"
 description = "Offline-first, local model serving"
 readme = "README.md"
 requires-python = ">=3.11"

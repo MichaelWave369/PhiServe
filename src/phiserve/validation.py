@@ -26,7 +26,7 @@ def validate_local(
     alias: str, executable: str, output: str | Path, *,
     backend_port: int = 11436, ctx_size: int = 2048,
     gpu_layers: int = 0, startup_timeout: float = 120,
-    registry: ModelRegistry | None = None,
+    registry: ModelRegistry | None = None, sampler=None,
 ) -> dict:
     """Launch real llama-server, require nonempty text, write receipt exclusively."""
     target = Path(output).expanduser().resolve()
@@ -44,7 +44,14 @@ def validate_local(
     backend = LlamaBackend(executable=executable, model_path=model,
                            alias=alias, port=backend_port, ctx_size=ctx_size,
                            gpu_layers=gpu_layers, startup_timeout=startup_timeout)
+    telemetry = None
     with backend:
+        if sampler is not None:
+            child = getattr(backend, "process", None)
+            pid = getattr(child, "pid", None)
+            if type(pid) is not int or pid < 1:
+                raise RuntimeError("Cannot sample GPU memory without PhiServe-launched process PID")
+            sampler.start(pid)
         connection = http.client.HTTPConnection("127.0.0.1", backend_port, timeout=180)
         try:
             connection.request("POST", "/v1/chat/completions",
@@ -59,6 +66,8 @@ def validate_local(
             data = json.loads(body)
         finally:
             connection.close()
+            if sampler is not None:
+                telemetry = sampler.stop()
     try:
         reply = data["choices"][0]["message"]["content"]
         if not isinstance(reply, str) or not reply.strip():
@@ -90,6 +99,8 @@ def validate_local(
         "phiserve_version": __version__,
         "raw_prompt_or_output_stored": False,
     }
+    if telemetry is not None:
+        receipt["gpu_process_telemetry"] = telemetry
     target.parent.mkdir(parents=True, exist_ok=True)
     with target.open("x", encoding="utf-8") as stream:
         json.dump(receipt, stream, indent=2, sort_keys=True)
