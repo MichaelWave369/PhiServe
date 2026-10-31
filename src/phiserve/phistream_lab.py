@@ -65,6 +65,7 @@ def probe_checkpoint(path: str | Path) -> dict:
         "shard_count": inspection["file_count"],
         "layers": settings.layers,
         "vocab_size": settings.vocab,
+        "max_context": settings.max_context,
         "checkpoint_path_withheld": True,
         "independent_reference_parity_verified": False,
         "gpu_execution_verified": False,
