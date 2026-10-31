@@ -17,6 +17,7 @@ from .server import make_server
 from .security import create_token_file, load_access
 from .phistream_lab import PhiStreamCatalog, PhiStreamLabError, probe_checkpoint, run_ids
 from .phistream_text import encode_prompt, text_lab
+from .phistream_parity import preflight_reference, run_reference_gate
 
 
 def parser() -> argparse.ArgumentParser:
@@ -87,6 +88,27 @@ def parser() -> argparse.ArgumentParser:
     text_command.add_argument("--show-output", action="store_true", help="Explicitly print decoded text locally")
     text_command.add_argument("--output", required=True, help="New private metadata receipt; no raw text")
     text_command.add_argument("--timeout-seconds", type=int, default=900)
+
+    parity_preflight = actions.add_parser(
+        "parity-preflight",
+        help="Validate prompt token IDs against a user-provided PhiStream reference trace, no inference",
+    )
+    parity_run = actions.add_parser(
+        "parity-run",
+        help="Governed local PhiStream reference parity (never promotes to chat)",
+    )
+    for option in (parity_preflight, parity_run):
+        option.add_argument("alias")
+        option.add_argument("--tokenizer", required=True, help="Trusted local tokenizer.json")
+        option.add_argument("--prompt", required=True, help="Exact reference prompt text (visible in process arguments)")
+        option.add_argument("--trace", required=True, help="Existing local PHISTREAM_REFERENCE_TRACE_V1 JSON")
+        option.add_argument("--add-special-tokens", action="store_true")
+    parity_run.add_argument("--device", choices=["cpu", "cuda"], required=True)
+    parity_run.add_argument("--capacity-mib", type=float, required=True)
+    parity_run.add_argument("--reserve-mib", type=float, default=1024.0)
+    parity_run.add_argument("--approve-local-execution", action="store_true")
+    parity_run.add_argument("--timeout-seconds", type=int, default=1800)
+    parity_run.add_argument("--output", required=True, help="New JSON summary only, refuse overwrite")
 
     serve = commands.add_parser("serve", help="Start supervised llama.cpp and the loopback HTTP API")
     serve.add_argument("alias")
@@ -180,6 +202,29 @@ def main(argv: list[str] | None = None) -> int:
                 if args.show_output:
                     print("Local experimental decoded text (NOT validated chat):")
                     print(generated_text)
+            elif args.action == "parity-preflight":
+                report, _trace = preflight_reference(
+                    research_catalog, args.alias, tokenizer_path=args.tokenizer,
+                    prompt=args.prompt, trace_path=args.trace,
+                    add_special_tokens=args.add_special_tokens,
+                )
+                print(json.dumps(report, indent=2, sort_keys=True))
+                if not report["reference_eligible_for_run"]:
+                    print("Reference too short for execution gate: 32 steps required.", file=sys.stderr)
+                    return 2
+            elif args.action == "parity-run":
+                report = run_reference_gate(
+                    research_catalog, args.alias, tokenizer_path=args.tokenizer,
+                    prompt=args.prompt, trace_path=args.trace,
+                    device=args.device, capacity_mib=args.capacity_mib,
+                    reserve_mib=args.reserve_mib, output=args.output,
+                    approved=args.approve_local_execution,
+                    add_special_tokens=args.add_special_tokens,
+                    timeout_seconds=args.timeout_seconds,
+                )
+                print(json.dumps(report, indent=2, sort_keys=True))
+                if report["status"] == "REFERENCE_MISMATCH":
+                    return 2
             return 0
 
         if args.command == "models":
