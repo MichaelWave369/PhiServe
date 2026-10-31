@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.1.0 experimental.** This is an intentionally small foundation, not an Ollama replacement yet. Ollama API compatibility, automatic scheduling, a GUI, downloads, multi-model serving, PhiStream inference integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.2.0 experimental, Ollama text-API subset.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -47,6 +47,20 @@ curl -N http://127.0.0.1:11435/v1/chat/completions -H "Content-Type: application
 
 The API forwards both streaming and non-streaming requests to the actual local `llama-server`; it never generates canned model answers.
 
+## Ollama compatibility (Rung 2)
+
+Point a compatible text-only Ollama client at `http://127.0.0.1:11435` (not Ollama\'s default port). The following examples use the **active** model alias, not an Ollama model you have not registered:
+
+~~~bash
+curl http://127.0.0.1:11435/api/tags
+curl -N http://127.0.0.1:11435/api/chat -H "Content-Type: application/json" -d \'{"model":"local-assistant","messages":[{"role":"user","content":"Hello!"}]}\'
+curl http://127.0.0.1:11435/api/generate -H "Content-Type: application/json" -d \'{"model":"local-assistant","prompt":"Hello!","stream":false}\'
+~~~
+
+Default streaming produces **NDJSON** (one Ollama-format JSON object per line), not OpenAI SSE. `stream:false` returns a single Ollama-format JSON object. Usage counts are reported only when the upstream supplies them. `total_duration` is measured from PhiServe\'s local upstream request start, not a claim about model-only execution time.
+
+**Supported request subset:** text messages and prompt, optional `system` for generation, `raw` generation, `stream`, and selected `options`: `temperature`, `top_p`, `seed`, `num_predict`, `stop`. Unsupported fields, including images, tools, `format`, `think`, `keep_alive`, and `num_ctx`, return HTTP 422 rather than being silently ignored. In particular `/api/generate` uses model chat-template formatting by default; `raw:true` uses the literal completion endpoint. Compatibility is intentionally limited; not all Ollama clients work yet. `/api/tags` advertises only the actively served model, with real file size and modified time when available; it does not invent digest, family, or quantization metadata.
+
 ## Command reference
 
 ~~~text
@@ -58,7 +72,7 @@ phiserve serve ALIAS [--llama-server PATH] [--port 11435] [--backend-port 11436]
 
 You can set `PHISERVE_HOME` to move its metadata directory (default: `~/.phiserve`). Registry entries refer to existing GGUF files: they are not copied or downloaded.
 
-## HTTP surface (Rung 1)
+## HTTP surface (Rungs 1-2)
 
 | Method | Route | Behavior |
 | --- | --- | --- |
@@ -66,8 +80,11 @@ You can set `PHISERVE_HOME` to move its metadata directory (default: `~/.phiserv
 | GET | `/v1/models` | Currently selected model alias only |
 | POST | `/v1/chat/completions` | Validated, streaming-safe local proxy |
 | POST | `/v1/completions` | Validated, streaming-safe local proxy |
+| GET | `/api/tags` | Active GGUF model alias and available file metadata |
+| POST | `/api/chat` | Ollama text chat; NDJSON streaming or one JSON result |
+| POST | `/api/generate` | Ollama text generation; NDJSON streaming or one JSON result |
 
-Requests must be JSON with a matching `model` alias. Maximum request body is 2 MiB; unsupported routes are rejected. No Ollama-compatible routes are claimed in this release.
+Requests must be JSON with a matching `model` alias. Maximum request body is 2 MiB; unsupported routes are rejected. Only the Ollama text API subset above is claimed in this release.
 
 ## Safety and limitations
 

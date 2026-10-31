@@ -93,7 +93,7 @@ class APITests(unittest.TestCase):
             urllib.request.urlopen(self.request("/v1/chat/completions", b"{broken"))
         self.assertEqual(outcome.exception.code, 400)
         with self.assertRaises(urllib.error.HTTPError) as outcome:
-            urllib.request.urlopen(self.request("/api/generate", b"{}"))
+            urllib.request.urlopen(self.request("/api/not-implemented", b"{}"))
         self.assertEqual(outcome.exception.code, 404)
 
     def test_request_size_limit(self):
