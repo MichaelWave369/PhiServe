@@ -45,7 +45,7 @@ export const ECOSYSTEM_APPS = Object.freeze([
   },
 ].map(item=>Object.freeze({
   ...item,liveConnectionObserved:false,grantsPermissions:false,
-}))));
+})));
 export const INVENTORY_SCOPE='STATIC_CODE_REVIEW_NOT_LIVE_DISCOVERY';
 export function inventoryCounts(entries=ECOSYSTEM_APPS){
   return {listed:entries.length,
