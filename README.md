@@ -6,6 +6,14 @@ PhiServe Rung 1 is a **working local HTTP serving layer** around a separately in
 
 **Status: v0.10.0 experimental, with opt-in local child-process GPU telemetry for actual inference field runs.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. A shared single-resident daemon and an optional, explicitly authorized PhiStream **research** lane now exist, but a GUI, full Ollama feature parity, production PhiStream chat, and remote-device serving remain future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
+## Live React Console (Rung 11)
+
+PhiServe includes a responsive [React control deck](web/README.md) with a **clearly labeled offline demo**, optional same-device authenticated connection to local `/health`, `/api/tags`, `/api/ps`, and streamed `/api/chat`, plus a field-lab walkthrough. The GitHub Pages deployment workflow publishes the static bundle after a green merge to `main`.
+
+**Expected website after deployment succeeds:** https://michaelwave369.github.io/PhiServe/
+
+The page hosts **no model inference, weights, token database or cloud backend**. Its bearer token stays in the browser tab's memory and is never saved by the app. To connect from the hosted page, start PhiServe daemon locally with `--browser-origin https://michaelwave369.github.io --api-key-file PRIVATE_FILE`. That origin is shared by other projects under the same GitHub Pages host: only run applications you trust there. An HTTPS browser's loopback/PNA permissions can still prevent same-device connections. See [browser bridge](docs/BROWSER_BRIDGE.md) and [console guide](web/README.md).
+
 ## Quick start
 
 Requirements: Python 3.11+; a trusted, independently installed `llama-server` executable; and a legitimate local GGUF model whose license permits your use.
