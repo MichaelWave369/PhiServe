@@ -11,6 +11,7 @@ from urllib.parse import urlsplit
 
 from .ollama_compat import handle_ollama, model_tags, translate, UnsupportedRequest
 from .manager import ModelManagerError
+from .security import BrowserAccess
 
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
@@ -21,17 +22,65 @@ class PhiServeHTTP(ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
 
-    def __init__(self, address: tuple[str, int], model_alias: str, backend_port: int, model_path=None, manager=None):
+    def __init__(self, address: tuple[str, int], model_alias: str, backend_port: int, model_path=None, manager=None, browser_access: BrowserAccess | None = None):
         super().__init__(address, APIHandler)
         self.model_alias = model_alias
         self.backend_port = backend_port
         self.model_path = model_path
         self.manager = manager
+        self.browser_access = browser_access
 
 
 class APIHandler(BaseHTTPRequestHandler):
     server: PhiServeHTTP
     protocol_version = "HTTP/1.0"
+
+    def _cors_headers(self) -> None:
+        access = self.server.browser_access
+        if access is not None and self.headers.get("Origin") == access.origin:
+            self.send_header("Access-Control-Allow-Origin", access.origin)
+            self.send_header("Vary", "Origin")
+
+    def _security_gate(self) -> bool:
+        access = self.server.browser_access
+        if access is None:
+            return True
+        origin = self.headers.get("Origin")
+        if origin is not None and origin != access.origin:
+            self._json(403, {"error": "Browser origin not permitted"})
+            return False
+        if not access.check(self.headers.get("Authorization", "")):
+            self.send_response(401)
+            self.send_header("WWW-Authenticate", "Bearer")
+            self.send_header("Content-Type", "application/json")
+            self._cors_headers()
+            self.send_header("Cache-Control", "no-store")
+            body = b'{"error":"Valid local bridge bearer token required"}'
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return False
+        return True
+
+    def do_OPTIONS(self) -> None:
+        access = self.server.browser_access
+        origin = self.headers.get("Origin")
+        method = self.headers.get("Access-Control-Request-Method", "").upper()
+        requested = self.headers.get("Access-Control-Request-Headers", "")
+        names = {value.strip().lower() for value in requested.split(",") if value.strip()}
+        if (access is None or origin != access.origin or method not in {"GET", "POST"}
+                or not names.issubset({"authorization", "content-type"})):
+            self._json(403, {"error": "CORS preflight denied"})
+            return
+        self.send_response(204)
+        self._cors_headers()
+        self.send_header("Access-Control-Allow-Methods", "GET, POST")
+        self.send_header("Access-Control-Allow-Headers", "Authorization, Content-Type")
+        self.send_header("Access-Control-Max-Age", "600")
+        if self.headers.get("Access-Control-Request-Private-Network") == "true":
+            self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def _json(self, status: int, payload: dict) -> None:
         encoded = json.dumps(payload, separators=(",", ":")).encode("utf-8")
@@ -39,10 +88,13 @@ class APIHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
         self.send_header("Cache-Control", "no-store")
+        self._cors_headers()
         self.end_headers()
         self.wfile.write(encoded)
 
     def do_GET(self) -> None:
+        if not self._security_gate():
+            return
         path = urlsplit(self.path).path
         manager = self.server.manager
         if path == "/api/tags":
@@ -95,6 +147,8 @@ class APIHandler(BaseHTTPRequestHandler):
             self._json(404, {"error": {"message": "Unknown route"}})
 
     def do_POST(self) -> None:
+        if not self._security_gate():
+            return
         path = urlsplit(self.path).path
         if path not in POST_ROUTES:
             self._json(404, {"error": {"message": "Unknown route"}})
@@ -165,6 +219,7 @@ class APIHandler(BaseHTTPRequestHandler):
             content_type = upstream.getheader("Content-Type", "application/json")
             self.send_header("Content-Type", content_type)
             self.send_header("Cache-Control", "no-store")
+            self._cors_headers()
             self.send_header("Connection", "close")
             self.end_headers()
             headers_sent = True
@@ -184,6 +239,6 @@ class APIHandler(BaseHTTPRequestHandler):
             conn.close()
 
 
-def make_server(model_alias: str, backend_port: int, listen_port: int = 11435, model_path=None, manager=None) -> PhiServeHTTP:
+def make_server(model_alias: str, backend_port: int, listen_port: int = 11435, model_path=None, manager=None, browser_access=None) -> PhiServeHTTP:
     # Intentionally no bind address argument until authentication is implemented.
-    return PhiServeHTTP(("127.0.0.1", listen_port), model_alias, backend_port, model_path, manager)
+    return PhiServeHTTP(("127.0.0.1", listen_port), model_alias, backend_port, model_path, manager, browser_access)

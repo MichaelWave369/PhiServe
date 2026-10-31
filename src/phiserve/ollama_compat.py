@@ -207,6 +207,7 @@ def _send_stream(handler, route: str, alias: str, response, started_ns: int, is_
     handler.send_response(200)
     handler.send_header("Content-Type", "application/x-ndjson")
     handler.send_header("Cache-Control", "no-store")
+    handler._cors_headers()
     handler.send_header("Connection", "close")
     handler.end_headers()
     handler.close_connection = True
