@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "phiserve"
+version = "0.1.0"
+description = "Offline-first, local model serving"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {file = "LICENSE"}
+authors = [{name = "PhiServe contributors"}]
+dependencies = []
+
+[project.scripts]
+phiserve = "phiserve.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
