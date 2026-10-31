@@ -28,7 +28,16 @@
 - Disk quotas, remove/import, GGUF metadata parsing, configuration profiles
 - Hardware-aware resource estimates, tested GPU fallback and scheduler
 
-## Rung 4: ecosystem adapters
+## Rung 4: shared model lifecycle (experimental)
+
+- [x] Single-resident lazy model manager for multiple registered aliases
+- [x] Lease protection for in-flight streaming responses; busy switch returns 409
+- [x] Configurable idle unload, explicit request concurrency ceiling, active-model status
+- [x] Loopback-only daemon command; no remote control surface
+- [ ] Physical GPU/model validation, true VRAM accounting, model swap benchmark, and crash recovery receipts
+- [ ] Shared multi-process scheduling, fairness, queuing, cancellation, and memory-aware admission
+
+## Rung 5: ecosystem adapters
 
 - Stable backend interface; only integrate PhiStream after real chat inference with parity receipts
 - PhiOS trusted gateway and local service manifests

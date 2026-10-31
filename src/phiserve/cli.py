@@ -8,6 +8,7 @@ import sys
 
 from . import __version__
 from .backend import LlamaBackend
+from .manager import ModelManager
 from .registry import ModelRegistry, RegistryError
 from .ollama_store import OllamaStoreError, discover, import_model
 from .validation import validate_local
@@ -44,6 +45,15 @@ def parser() -> argparse.ArgumentParser:
     serve.add_argument("--ctx-size", type=int, default=4096)
     serve.add_argument("--gpu-layers", type=int, default=0)
     serve.add_argument("--startup-timeout", type=float, default=120)
+    daemon = commands.add_parser("daemon", help="One shared local daemon; switch models after in-flight requests finish")
+    daemon.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
+    daemon.add_argument("--port", type=int, default=11435)
+    daemon.add_argument("--backend-port", type=int, default=11436)
+    daemon.add_argument("--ctx-size", type=int, default=4096)
+    daemon.add_argument("--gpu-layers", type=int, default=0)
+    daemon.add_argument("--startup-timeout", type=float, default=120)
+    daemon.add_argument("--idle-seconds", type=float, default=300, help="Unload after idle interval (0 disables)")
+    daemon.add_argument("--max-concurrent", type=int, default=4, help="Maximum simultaneous requests for loaded model")
     validate = commands.add_parser("validate", help="Run an actual local model and write an observation receipt")
     validate.add_argument("alias")
     validate.add_argument("--llama-server", default=os.environ.get("PHISERVE_LLAMA_SERVER", "llama-server"))
@@ -96,6 +106,30 @@ def main(argv: list[str] | None = None) -> int:
                                      registry=registry)
             print(f"Local generation observed; receipt saved: {args.output}")
             print(f"Result: {receipt['status']}. GPU execution is NOT independently verified.")
+            return 0
+
+        if args.command == "daemon":
+            if (not (1 <= args.port <= 65535 and 1 <= args.backend_port <= 65535)
+                    or args.port == args.backend_port or args.ctx_size <= 0
+                    or args.gpu_layers < 0 or args.startup_timeout <= 0
+                    or args.idle_seconds < 0 or args.max_concurrent < 1):
+                raise RegistryError("Invalid daemon ports, context, layer count, timeout, idle interval, or concurrency")
+            manager = ModelManager(registry=registry, executable=args.llama_server,
+                                   backend_port=args.backend_port, ctx_size=args.ctx_size,
+                                   gpu_layers=args.gpu_layers, startup_timeout=args.startup_timeout,
+                                   idle_seconds=args.idle_seconds, max_concurrent=args.max_concurrent)
+            server = make_server("", args.backend_port, args.port, manager=manager)
+            server.timeout = 1
+            try:
+                print(f"PhiServe shared manager listening on http://127.0.0.1:{args.port}; no model loaded yet.", flush=True)
+                while True:
+                    server.handle_request()
+                    manager.unload_idle()
+            except KeyboardInterrupt:
+                print("\\nStopping shared PhiServe.", flush=True)
+            finally:
+                server.server_close()
+                manager.close(grace_seconds=30)
             return 0
 
         if not (1 <= args.port <= 65535 and 1 <= args.backend_port <= 65535):

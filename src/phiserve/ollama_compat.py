@@ -270,13 +270,14 @@ def _send_single(handler, route: str, alias: str, response, started_ns: int, is_
                                       reason, time.monotonic_ns() - started_ns, _usage(data)))
 
 
-def handle_ollama(handler, route: str, request: dict) -> None:
+def handle_ollama(handler, route: str, request: dict, model_alias: str | None = None) -> None:
     try:
         target, body, stream = translate(route, request)
     except UnsupportedRequest as exc:
         handler._json(422, {"error": str(exc)})
         return
 
+    selected_alias = handler.server.model_alias if model_alias is None else model_alias
     connection = http.client.HTTPConnection("127.0.0.1", handler.server.backend_port, timeout=600)
     started_ns = time.monotonic_ns()
     try:
@@ -287,9 +288,9 @@ def handle_ollama(handler, route: str, request: dict) -> None:
             handler._json(502, {"error": f"Local inference backend HTTP {response.status}"})
             return
         if stream:
-            _send_stream(handler, route, handler.server.model_alias, response, started_ns, target == "/v1/chat/completions")
+            _send_stream(handler, route, selected_alias, response, started_ns, target == "/v1/chat/completions")
         else:
-            _send_single(handler, route, handler.server.model_alias, response, started_ns, target == "/v1/chat/completions")
+            _send_single(handler, route, selected_alias, response, started_ns, target == "/v1/chat/completions")
     except (OSError, http.client.HTTPException):
         if not handler.wfile.closed:
             try:

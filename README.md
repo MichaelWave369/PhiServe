@@ -4,7 +4,7 @@
 
 PhiServe Rung 1 is a **working local HTTP serving layer** around a separately installed [llama.cpp](https://github.com/ggml-org/llama.cpp) `llama-server` binary. It registers an existing local GGUF model, supervises a real inference process, and exposes OpenAI-style chat and text-completion endpoints on loopback. PhiServe does not ship model weights or download anything automatically.
 
-**Status: v0.3.0 experimental, Ollama text-API subset and read-only model reuse.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
+**Status: v0.4.0 experimental, shared single-resident model manager.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. Automatic scheduling, a GUI, downloads, multi-model serving, multimodal requests, PhiStream integration, and LAN access are future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
 ## Quick start
 
@@ -73,6 +73,18 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## Shared multi-model daemon (Rung 4)
+
+Register multiple GGUF models (or import from Ollama), then start a **single** shared PhiServe daemon. Requests select a registered model by alias. The first request loads it lazily; later requests for the same model share its process. A request for another model switches processes **only after all active requests finish**. If the previous model is busy, PhiServe returns HTTP 409 rather than destroying its stream. A concurrent load/eviction returns HTTP 503 and may be retried. A request limit returns HTTP 429.
+
+~~~powershell
+phiserve daemon --llama-server "C:\\llama.cpp\\build\\bin\\Release\\llama-server.exe" --gpu-layers 20 --idle-seconds 300 --max-concurrent 4
+~~~
+
+The gateway is on `127.0.0.1:11435` and the child backend on `127.0.0.1:11436`. Both are loopback-only. No new weights are downloaded, and there is **at most one resident llama.cpp model subprocess** per PhiServe daemon. `--idle-seconds 0` disables idle eviction. GPU layer count is a request to the separately installed llama.cpp runtime, not proof of VRAM residency. The previous single-model `phiserve serve ALIAS` command remains supported.
+
+The daemon's `GET /api/tags` and `GET /v1/models` list registered aliases, including unloaded models. `GET /api/ps` lists only the currently resident model and intentionally omits unknown VRAM, digest, and timing fields. `GET /health` reports manager readiness; an idle daemon can be ready without running a model. No unauthenticated model-download, delete, or remote-control endpoints are added. See [shared manager details](docs/SHARED_MODEL_MANAGER.md).
+
 ## Command reference
 
 ~~~text
@@ -82,6 +94,7 @@ phiserve models remove ALIAS
 phiserve models discover-ollama [--root ROOT]
 phiserve models import-ollama MODEL [--alias ALIAS] [--root ROOT] [--verify-sha256]
 phiserve validate ALIAS --llama-server PATH --output NEW_JSON [--gpu-layers N]
+phiserve daemon [--llama-server PATH] [--port 11435] [--backend-port 11436] [--gpu-layers N] [--idle-seconds 300] [--max-concurrent 4]
 phiserve serve ALIAS [--llama-server PATH] [--port 11435] [--backend-port 11436] [--ctx-size 4096] [--gpu-layers 0] [--startup-timeout 120]
 ~~~
 
@@ -95,9 +108,10 @@ You can set `PHISERVE_HOME` to move its metadata directory (default: `~/.phiserv
 | GET | `/v1/models` | Currently selected model alias only |
 | POST | `/v1/chat/completions` | Validated, streaming-safe local proxy |
 | POST | `/v1/completions` | Validated, streaming-safe local proxy |
-| GET | `/api/tags` | Active GGUF model alias and available file metadata |
+| GET | `/api/tags` | Single-model mode: active alias; daemon: all registered aliases |
 | POST | `/api/chat` | Ollama text chat; NDJSON streaming or one JSON result |
 | POST | `/api/generate` | Ollama text generation; NDJSON streaming or one JSON result |
+| GET | `/api/ps` | Resident model (or empty models list for idle daemon) |
 
 Requests must be JSON with a matching `model` alias. Maximum request body is 2 MiB; unsupported routes are rejected. Only the Ollama text API subset above is claimed in this release.
 
