@@ -171,6 +171,7 @@ def parse_token_ids(value: str, vocab_size: int) -> list[int]:
 
 def run_ids(catalog: PhiStreamCatalog, alias: str, *, prompt: str, tokens: int,
             device: str, output: str | Path, approved: bool,
+            capacity_mib: float, reserve_mib: float = 1024.0,
             timeout_seconds: int = 900, runner=None) -> dict:
     """Execute explicit token-ID research command; never routed from HTTP."""
     if approved is not True:
@@ -179,6 +180,10 @@ def run_ids(catalog: PhiStreamCatalog, alias: str, *, prompt: str, tokens: int,
         raise PhiStreamLabError("tokens must be 1-128")
     if device not in {"cpu", "cuda"}:
         raise PhiStreamLabError("device must be cpu or cuda")
+    if (type(capacity_mib) not in {int, float} or type(reserve_mib) not in {int, float}
+            or not (0 < float(capacity_mib) <= 1048576)
+            or not (0 <= float(reserve_mib) < float(capacity_mib))):
+        raise PhiStreamLabError("Explicit memory capacity must be positive and exceed reserve")
     if type(timeout_seconds) is not int or not 1 <= timeout_seconds <= 3600:
         raise PhiStreamLabError("timeout must be 1-3600 seconds")
     target = Path(output).expanduser().resolve()
@@ -189,7 +194,8 @@ def run_ids(catalog: PhiStreamCatalog, alias: str, *, prompt: str, tokens: int,
     cmd = [
         sys.executable, "-m", "phistream.cli", "run-llama-ids", str(checkpoint),
         "--prompt", ",".join(map(str, ids)), "--tokens", str(tokens),
-        "--device", device, "--output", str(target),
+        "--device", device, "--capacity-mib", str(capacity_mib),
+        "--reserve-mib", str(reserve_mib), "--output", str(target),
     ]
     call = runner or subprocess.run
     try:
@@ -198,6 +204,22 @@ def run_ids(catalog: PhiStreamCatalog, alias: str, *, prompt: str, tokens: int,
         raise PhiStreamLabError("PhiStream token-ID execution timed out") from exc
     if result.returncode != 0 or not target.is_file():
         raise PhiStreamLabError("PhiStream execution failed or did not produce a receipt")
+    if target.stat().st_size > 1024 * 1024:
+        raise PhiStreamLabError("PhiStream receipt exceeded size limit")
+    try:
+        report = json.loads(target.read_text(encoding="utf-8"))
+    except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+        raise PhiStreamLabError("PhiStream receipt is not valid JSON") from exc
+    outputs = report.get("generated_token_ids") if isinstance(report, dict) else None
+    if (not isinstance(report, dict)
+            or report.get("schema") != "PHISTREAM_LLAMA_TOKEN_IDS_V1"
+            or report.get("status") != "EXECUTED_UNVERIFIED_REFERENCE"
+            or report.get("prompt_token_ids") != ids
+            or report.get("device") != device
+            or report.get("generated_token_count") != tokens
+            or not isinstance(outputs, list) or len(outputs) != tokens
+            or any(type(n) is not int or n < 0 or n >= metadata["vocab_size"] for n in outputs)):
+        raise PhiStreamLabError("PhiStream receipt does not match requested token-ID execution")
     return {
         "schema": "PHISERVE_PHISTREAM_LAB_HANDOFF_V1",
         "status": "LOCAL_TOKEN_ID_EXECUTION_RECEIPT_CREATED",

@@ -100,12 +100,12 @@ class PhiStreamCatalogTests(unittest.TestCase):
         out = self.home / "receipt.json"
         with self.assertRaisesRegex(PhiStreamLabError, "approve"):
             run_ids(self.catalog, "research-llama", prompt="1,2", tokens=4,
-                    device="cpu", output=out, approved=False)
+                    device="cpu", output=out, approved=False, capacity_mib=4096)
         out.write_text("do not overwrite")
         with patch("phiserve.phistream_lab.probe_checkpoint", return_value=REVIEW):
             with self.assertRaisesRegex(PhiStreamLabError, "already exists"):
                 run_ids(self.catalog, "research-llama", prompt="1", tokens=4,
-                        device="cpu", output=out, approved=True)
+                        device="cpu", output=out, approved=True, capacity_mib=4096)
         self.assertEqual(out.read_text(), "do not overwrite")
 
     def test_run_uses_phi_stream_cli_without_shell_and_no_chat_switch(self):
@@ -116,12 +116,19 @@ class PhiStreamCatalogTests(unittest.TestCase):
             self.assertIn("--prompt", argv)
             self.assertIn("--device", argv)
             self.assertFalse(kwargs["shell"])
-            out.write_text(json.dumps({"schema": "PHISTREAM_LLAMA_TOKEN_IDS_V1"}))
+            self.assertIn("--capacity-mib", argv)
+            self.assertIn("--reserve-mib", argv)
+            out.write_text(json.dumps({
+                "schema": "PHISTREAM_LLAMA_TOKEN_IDS_V1",
+                "status": "EXECUTED_UNVERIFIED_REFERENCE",
+                "prompt_token_ids": [1, 2], "generated_token_ids": [2, 3],
+                "generated_token_count": 2, "device": "cpu",
+            }))
             return SimpleNamespace(returncode=0)
         with patch("phiserve.phistream_lab.probe_checkpoint", return_value=REVIEW):
             result = run_ids(self.catalog, "research-llama", prompt="1,2",
                              tokens=2, device="cpu", output=out,
-                             approved=True, runner=fake_subprocess)
+                             approved=True, capacity_mib=4096, runner=fake_subprocess)
         self.assertEqual(result["status"], "LOCAL_TOKEN_ID_EXECUTION_RECEIPT_CREATED")
         self.assertFalse(result["chat_endpoint_enabled"])
         self.assertFalse(result["gpu_execution_independently_verified"])
@@ -132,7 +139,7 @@ class PhiStreamCatalogTests(unittest.TestCase):
         with patch("phiserve.phistream_lab.probe_checkpoint", return_value=REVIEW):
             with self.assertRaises(PhiStreamLabError):
                 run_ids(self.catalog, "research-llama", prompt="1",
-                        tokens=1, device="cpu", output=out, approved=True,
+                        tokens=1, device="cpu", output=out, approved=True, capacity_mib=4096,
                         runner=lambda *_args, **_kwargs: SimpleNamespace(returncode=2))
         self.assertFalse(out.exists())
 

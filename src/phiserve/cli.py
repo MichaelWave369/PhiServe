@@ -59,6 +59,9 @@ def parser() -> argparse.ArgumentParser:
     execute.add_argument("--tokens", type=int, default=4)
     execute.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     execute.add_argument("--approve-local-execution", action="store_true")
+    execute.add_argument("--capacity-mib", type=float, required=True,
+                         help="Explicit memory preflight budget; never a guaranteed VRAM cap")
+    execute.add_argument("--reserve-mib", type=float, default=1024.0)
     execute.add_argument("--output", required=True, help="New local JSON receipt; refuse overwrite")
     execute.add_argument("--timeout-seconds", type=int, default=900)
 
@@ -131,6 +134,7 @@ def main(argv: list[str] | None = None) -> int:
                     research_catalog, args.alias, prompt=args.prompt,
                     tokens=args.tokens, device=args.device,
                     output=args.output, approved=args.approve_local_execution,
+                    capacity_mib=args.capacity_mib, reserve_mib=args.reserve_mib,
                     timeout_seconds=args.timeout_seconds,
                 )
                 print(json.dumps(result, indent=2, sort_keys=True))

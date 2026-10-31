@@ -19,10 +19,10 @@ The inspect/register calls use PhiStream's own `LocalCheckpoint` and `LlamaSetti
 ### Explicit, opt-in token-ID research execution
 
 ~~~powershell
-phiserve phistream run-ids research-llama --prompt 1,2,3 --tokens 4 --device cpu --approve-local-execution --output "benchmarks\\local\\phiids.json"
+phiserve phistream run-ids research-llama --prompt 1,2,3 --tokens 4 --device cpu --capacity-mib 4096 --reserve-mib 1024 --approve-local-execution --output "benchmarks\\local\\phiids.json"
 ~~~
 
-This delegates to the **installed PhiStream implementation** through a fixed argument-array subprocess call, no shell. It accepts **token IDs**, not text. The operator must supply correctly tokenized IDs from a suitably licensed tokenizer. The command requests no network access or downloads and refuses to overwrite an existing receipt. Setting `--device cuda` requests CUDA explicitly but is not independent proof that real GPU execution occurred.
+The explicit capacity/reserve values trigger PhiStream's metadata memory preflight before execution (not a hard RAM/VRAM cap). Requires the matching PhiStream CLI fix for `--capacity-mib` and `--reserve-mib` in its `run-llama-ids` command. This delegates to the **installed PhiStream implementation** through a fixed argument-array subprocess call, no shell. It accepts **token IDs**, not text. The operator must supply correctly tokenized IDs from a suitably licensed tokenizer. The command requests no network access or downloads and refuses to overwrite an existing receipt. Setting `--device cuda` requests CUDA explicitly but is not independent proof that real GPU execution occurred.
 
 Use `phiserve phistream remove research-llama` to remove only the PhiServe catalog entry; the original checkpoint files stay untouched.
 
