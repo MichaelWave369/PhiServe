@@ -61,6 +61,16 @@ curl -N http://127.0.0.1:11435/v1/chat/completions -H "Content-Type: application
 
 The API forwards both streaming and non-streaming requests to the actual local `llama-server`; it never generates canned model answers.
 
+## Φ Model Forge candidate intake (R0.1, review-only)
+
+Use `phiserve-forge-review --adapter PATH --receipt PATH` to inspect a local
+**PEFT LoRA training candidate**, without registering or serving it. It checks
+bounded file shapes and compares the declared base model to the receipt, but
+cannot verify actual training or model quality. A LoRA adapter is **not** a
+GGUF model, and this feature cannot convert or activate it. See
+[Forge intake](docs/PHI_MODEL_FORGE_INTAKE_R01.md) and the separate
+[PhiStream Model Forge](https://github.com/MichaelWave369/PhiStream).
+
 ## Ollama compatibility (Rung 2)
 
 Point a compatible text-only Ollama client at `http://127.0.0.1:11435` (not Ollama\'s default port). The following examples use the **active** model alias, not an Ollama model you have not registered:
