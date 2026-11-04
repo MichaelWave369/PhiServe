@@ -17,6 +17,7 @@ phistream-text = ["tokenizers>=0.20,<1"]
 
 [project.scripts]
 phiserve = "phiserve.cli:main"
+phiserve-forge-review = "phiserve.forge_intake:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
