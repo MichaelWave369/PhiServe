@@ -43,6 +43,7 @@ Do not publish receipts without reviewing model aliases and hardware labels.
 
 | Field | Meaning | Important limitation |
 |---|---|---|
+| `runtime.startup_ms` | Launch supervised local backend to ready condition | Includes process startup and health checks, excludes file hashing |
 | `wall_ms` | Request start to observed SSE `[DONE]` | Includes local HTTP/serving overhead; not just decode |
 | `first_content_ms` | Request start to first nonempty assistant text chunk | **Not** independently measured first model token |
 | `completion_tokens_reported` | Optional usage supplied by `llama-server` SSE | Missing/null is honest; chunks are **never** counted as tokens |
