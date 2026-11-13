@@ -6,6 +6,10 @@ PhiServe Rung 1 is a **working local HTTP serving layer** around a separately in
 
 **Status: v0.10.0 experimental, with opt-in local child-process GPU telemetry for actual inference field runs.** Rung 2 adds compatibility for text-only `/api/tags`, `/api/chat`, and `/api/generate` with Ollama-style newline-delimited JSON streams. It is not a complete Ollama replacement. A shared single-resident daemon and an optional, explicitly authorized PhiStream **research** lane now exist, but a GUI, full Ollama feature parity, production PhiStream chat, and remote-device serving remain future work. CI uses a fake backend; real checkpoint execution must be validated on operator hardware.
 
+## Hardware benchmark V1 (opt-in field lab)
+
+`phiserve-benchmark run` launches one registered GGUF through a local supervised `llama-server`, runs fixed-public-prompt warmups and sequential measured SSE trials, and writes a new privacy-conscious observation receipt. `phiserve-benchmark review` rejects malformed/contradictory receipts; `compare` requires the same model bytes and workload. Reported token rates are absent when the backend does not supply usage. Neither CI nor the receipt independently proves GPU execution, model quality, hardware provenance, or performance gains. See [the Hardware Benchmark V1 guide](docs/HARDWARE_BENCHMARK_V1.md).
+
 ## Live React Console (Rung 11)
 
 PhiServe includes a responsive [React control deck](web/README.md) with a **clearly labeled offline demo**, optional same-device authenticated connection to local `/health`, `/api/tags`, `/api/ps`, and streamed `/api/chat`, plus a field-lab walkthrough. The GitHub Pages deployment workflow publishes the static bundle after a green merge to `main`.
