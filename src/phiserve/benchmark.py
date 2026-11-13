@@ -242,7 +242,9 @@ def run_benchmark(alias: str, executable: str, output: str | Path, *,
     request = requester or _request_stream
     measured = []
     telemetry = None
+    load_begin = time.perf_counter_ns()
     with backend:
+        startup_ms = (time.perf_counter_ns() - load_begin) / 1e6
         if gpu_sampler is not None:
             process = getattr(backend, "process", None)
             pid = getattr(process, "pid", None)
@@ -269,7 +271,8 @@ def run_benchmark(alias: str, executable: str, output: str | Path, *,
                   "size_bytes": model_stat.st_size},
         "runtime": {"binary_name": binpath.name, "binary_sha256": binary_digest,
                     "phiserve_version": __version__,
-                    "platform_family": platform.system()},
+                    "platform_family": platform.system(),
+                    "startup_ms": startup_ms},
         "requested": {"gpu_layers": gpu_layers, "ctx_size": ctx_size,
                       "max_tokens": max_tokens, "seed": 42, "temperature": 0,
                       "backend_port": backend_port},
@@ -331,12 +334,13 @@ def validate_receipt(r: dict) -> None:
     _sha(r["model"]["gguf_sha256"], "GGUF")
     _int(r["model"]["size_bytes"], "model size", 4, 2 ** 60)
     _keys(r["runtime"], {"binary_name", "binary_sha256", "phiserve_version",
-                         "platform_family"}, "runtime")
+                         "platform_family", "startup_ms"}, "runtime")
     rt = r["runtime"]
     _require(isinstance(rt["binary_name"], str) and 1 <= len(rt["binary_name"]) <= 128
              and rt["binary_name"] == Path(rt["binary_name"]).name
              and '\\' not in rt["binary_name"], "Invalid binary name")
     _sha(rt["binary_sha256"], "runtime binary")
+    _number(rt["startup_ms"], "model startup duration")
     for field in ("phiserve_version", "platform_family"):
         _require(isinstance(rt[field], str) and 1 <= len(rt[field]) <= 128
                  and not any(c in rt[field] for c in "\r\n\0"), "Invalid runtime metadata")
