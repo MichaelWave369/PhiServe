@@ -25,6 +25,7 @@ class FieldCampaignTests(unittest.TestCase):
         self.model.write_bytes(b"GGUF"+b"dummy synthetic bytes"*30)
         self.bin=self.root/"llama-server"
         self.bin.write_bytes(b"synthetic executable fixture")
+        self.bin.chmod(0o755)
         self.registry=ModelRegistry(self.root/"home")
         self.registry.add("toy",self.model)
         self.output=self.root/"campaign"
