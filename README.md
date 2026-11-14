@@ -101,6 +101,10 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## One-command Windows field study (R21)
+
+`phiserve-field-study preview` checks a private Windows study session **without running inference or creating files**. A separate `run --execute` command intentionally runs the existing R18 local benchmark + PhiStream snapshot, verifies the original source bytes with R19 and packages the verified JSON with R20, in that order. Partial failures never count as a completed study. The operator provides an existing licensed local GGUF, a trusted llama-server executable and a private workspace. No automatic installs, uploads, deployment approvals or hardware authenticity claims. See the [main/backup Windows field study guide](docs/ONE_COMMAND_FIELD_STUDY_R21.md).
+
 ## Offline portable campaign bundles (R20)
 
 `phiserve-campaign-bundle pack` creates a bounded private ZIP containing **only the verified R18 source JSON files**, using the R19 verifier before and after packing. `check` revalidates the ZIP in a temporary directory, while `unpack` revalidates the original sources before placing them in a new private output directory. This is a practical way to carry backup-PC observations to the main PC for an R19 two-campaign review. No model is executed, no upload occurs, and the unsigned ZIP does not prove machine identity or genuine GPU execution. See the [R20 operator and safety guide](docs/PORTABLE_FIELD_EVIDENCE_R20.md).
