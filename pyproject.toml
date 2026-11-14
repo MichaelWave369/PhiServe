@@ -19,6 +19,7 @@ phistream-text = ["tokenizers>=0.20,<1"]
 phiserve = "phiserve.cli:main"
 phiserve-forge-review = "phiserve.forge_intake:main"
 phiserve-benchmark = "phiserve.benchmark:main"
+phiserve-advisor = "phiserve.hardware_advisor:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
