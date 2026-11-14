@@ -241,7 +241,7 @@ class HardwareAdviceTests(unittest.TestCase):
             self.advise()
 
     def test_limits_and_empty_inputs_refused(self):
-        for value in (-1, True, 100000):
+        for value in (-1, True, 1024 * 1024 + 1):
             with self.assertRaises(AdviceError):
                 self.advise(ram_reserve_mib=value)
         with self.assertRaises(AdviceError):
