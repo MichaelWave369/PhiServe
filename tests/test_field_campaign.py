@@ -23,7 +23,7 @@ class FieldCampaignTests(unittest.TestCase):
         self.root=Path(self.temp.name)
         self.model=self.root/"tiny.gguf"
         self.model.write_bytes(b"GGUF"+b"dummy synthetic bytes"*30)
-        self.bin=self.root/"llama-server"
+        self.bin=self.root/"llama-server.exe"
         self.bin.write_bytes(b"synthetic executable fixture")
         self.bin.chmod(0o755)
         self.registry=ModelRegistry(self.root/"home")
