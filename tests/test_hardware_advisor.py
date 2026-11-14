@@ -107,7 +107,7 @@ class HardwareAdviceTests(unittest.TestCase):
         self.bench_path.write_text(json.dumps(self.benchmark), encoding="utf-8")
 
     def advise(self, bench_files=None, **kwargs):
-        return advise(self.snap_path, bench_files or [self.bench_path],
+        return advise(self.snap_path, [self.bench_path] if bench_files is None else bench_files,
                       "tiny", self.out_path, registry=self.registry, now=self.now, **kwargs)
 
     def test_real_benchmark_receipt_shape_and_fresh_candidate(self):
