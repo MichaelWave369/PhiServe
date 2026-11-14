@@ -15,7 +15,11 @@ from .security import BrowserAccess
 
 
 MAX_BODY_BYTES = 2 * 1024 * 1024
-POST_ROUTES = {"/v1/chat/completions", "/v1/completions", "/api/chat", "/api/generate"}
+QUEUED_ROUTES = {
+    "/v1/queued/chat/completions": "/v1/chat/completions",
+    "/v1/queued/completions": "/v1/completions",
+}
+POST_ROUTES = {"/v1/chat/completions", "/v1/completions", "/api/chat", "/api/generate"} | set(QUEUED_ROUTES)
 
 
 class PhiServeHTTP(ThreadingHTTPServer):
@@ -131,6 +135,8 @@ class APIHandler(BaseHTTPRequestHandler):
                     "runtime": "local", "manager": "single-resident",
                     "active_model": state["active_model"],
                     "inflight_requests": state["inflight_requests"],
+                    "queued_requests": state["queued_requests"],
+                    "queue_capacity": state["queue_capacity"],
                 })
                 return
             try:
@@ -192,15 +198,19 @@ class APIHandler(BaseHTTPRequestHandler):
                 self._json(422, {"error": str(exc)})
                 return
         if manager is None:
+            if path in QUEUED_ROUTES:
+                self._json(503, {"error": "Inference queue requires shared daemon"})
+                return
             self._dispatch(path, request, alias)
             return
         try:
-            lease = manager.acquire(alias)
+            lease = (manager.acquire_queued(alias) if path in QUEUED_ROUTES
+                     else manager.acquire(alias))
         except ModelManagerError as exc:
             self._json(exc.status, {"error": str(exc)})
             return
         with lease:
-            self._dispatch(path, request, alias)
+            self._dispatch(QUEUED_ROUTES.get(path, path), request, alias)
 
     def _dispatch(self, path: str, request: dict, alias: str) -> None:
         if path in {"/api/chat", "/api/generate"}:

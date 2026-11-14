@@ -12,6 +12,10 @@ The `phiserve daemon` command lets multiple local clients address many registere
 - Ctrl+C initiates shutdown and waits up to 30 seconds for active requests. Any still-active request may be interrupted after that grace period. Startup in progress observes the shutdown flag and stops its child once startup returns.
 - A child that crashes is not declared healthy. A subsequent request can attempt a new startup when no leases are active.
 
+## Experimental R14 opt-in waiting (non-default)
+
+A separate bounded FIFO queue can be enabled through `phiserve daemon --queue-capacity 8 --queue-timeout-seconds 30`. The new versioned OpenAI-style routes `/v1/queued/chat/completions` and `/v1/queued/completions` wait for an available lease. While queued requests exist, legacy requests return 429 instead of starving the queue; otherwise all legacy wire behavior remains unchanged. Queue capacity counts waiting clients only; only one backend process remains resident. See [R14](QUEUED_ADMISSION_R14.md) for shutdown, capacity, timeout and security behavior.
+
 ## API behavior
 
 - `GET /api/tags`: registered models, whether loaded or not; no invented checksum, family, or GPU metrics.
