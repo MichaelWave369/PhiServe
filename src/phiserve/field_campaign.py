@@ -143,6 +143,7 @@ def collect(*, alias, binary, out_dir, site, layers=(0, 20), gpu_probe="none",
         timeout_seconds=timeout_seconds, startup_timeout=startup_timeout,
         sample_nvidia=sample_nvidia, registry=registry,
     )
+    need(type(execute) is bool, "INVALID_EXECUTE_FLAG")
     if not execute:
         return info
     # Fail before benchmark work when PhiStream is unavailable; no silent fake
@@ -196,6 +197,7 @@ def collect(*, alias, binary, out_dir, site, layers=(0, 20), gpu_probe="none",
         for r in receipts[1:]:
             need(r["model"]["gguf_sha256"] == model_sha and
                  r["model"]["size_bytes"] == model_size and
+                 r["runtime"]["binary_sha256"] == receipts[0]["runtime"]["binary_sha256"] and
                  r["experiment"] == receipts[0]["experiment"] and
                  r["requested"]["ctx_size"] == receipts[0]["requested"]["ctx_size"],
                  "SAME_SESSION_RECEIPTS_NOT_COMPARABLE")
