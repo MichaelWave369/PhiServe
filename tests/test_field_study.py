@@ -47,7 +47,10 @@ class FieldStudyTests(unittest.TestCase):
                         "collector":fake_collector, **kwargs})
 
     def paths(self):
-        return layout(self.root,"main-5070","study-01")
+        # These are output locations, not a second preflight after completion.
+        stem="main-5070-study-01"
+        return (self.root/stem, self.root/(stem+".review.json"),
+                self.root/(stem+".zip"))
 
     def test_preview_is_read_only_and_has_no_local_paths(self):
         result=self.run_fake()
