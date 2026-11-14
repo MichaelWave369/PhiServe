@@ -18,7 +18,7 @@ import re
 import shutil
 import sys
 
-from .benchmark import BenchmarkError, _hash_file, read_receipt, run_benchmark
+from .benchmark import BenchmarkError, read_receipt, run_benchmark
 from .hardware_advisor import AdviceError, advise
 from .registry import ModelRegistry, RegistryError
 
