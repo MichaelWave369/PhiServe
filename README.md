@@ -101,6 +101,10 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## Hardware-aware evidence advisor (R15, review-only)
+
+The opt-in `phiserve-advisor` command can locally compare a recent PhiStream `PHISTREAM_HARDWARE_SNAPSHOT_V1` with one or more actual PhiServe R13 benchmark receipts for the exact same registered GGUF bytes. It reports conservative RAM/VRAM *file-size floors*, evidence age, latency observations, and strict HOLD/REVIEW_REQUIRED classifications without executing inference or changing R14 queue admission. Results are not model-fit proofs, GPU attestations or permission to route. See [R15 operator guide](docs/HARDWARE_ADVISOR_R15.md).
+
 ## Experimental bounded inference queue (R14)
 
 The shared daemon optionally accepts FIFO waiting requests through `/v1/queued/chat/completions` and `/v1/queued/completions`. Disabled by default (`--queue-capacity 0`). Enable only with an explicit bounded capacity and wait deadline. Active leases are never evicted, queue timeouts/failures remain failures, and all legacy endpoints retain nonblocking behavior when no queue is waiting. This is **not** an adaptive GPU scheduler. See [R14 operator guide](docs/QUEUED_ADMISSION_R14.md).
