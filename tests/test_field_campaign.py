@@ -205,6 +205,18 @@ class FieldCampaignTests(unittest.TestCase):
         self.assertFalse((self.output/"campaign-manifest.json").exists())
         self.assertFalse((self.output/"capacity-advice.json").exists())
 
+    def test_binary_change_between_profiles_refused(self):
+        def changed_binary(*args,**kwargs):
+            result=self.fake_benchmark(*args,**kwargs)
+            if kwargs["gpu_layers"]>0:
+                result["runtime"]["binary_sha256"]="e"*64
+                args[2].write_text(json.dumps(result),encoding="utf-8")
+                validate_receipt(result)
+            return result
+        with self.assertRaisesRegex(CampaignHeld,"SAME_SESSION_RECEIPTS_NOT_COMPARABLE"):
+            self.run_fake(execute=True,benchmark_fn=changed_binary)
+        self.assertFalse((self.output/"campaign-manifest.json").exists())
+
     def test_snapshot_failure_does_not_emit_completed_campaign(self):
         def broken_snapshot(*args,**kwargs):
             self.events.append("snapshot:fail")
