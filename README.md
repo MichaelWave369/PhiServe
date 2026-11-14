@@ -101,6 +101,10 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## Offline portable campaign bundles (R20)
+
+`phiserve-campaign-bundle pack` creates a bounded private ZIP containing **only the verified R18 source JSON files**, using the R19 verifier before and after packing. `check` revalidates the ZIP in a temporary directory, while `unpack` revalidates the original sources before placing them in a new private output directory. This is a practical way to carry backup-PC observations to the main PC for an R19 two-campaign review. No model is executed, no upload occurs, and the unsigned ZIP does not prove machine identity or genuine GPU execution. See the [R20 operator and safety guide](docs/PORTABLE_FIELD_EVIDENCE_R20.md).
+
 ## Offline Field Campaign Evidence Verifier (R19)
 
 After an operator runs a real R18 field campaign on one or two machines, `phiserve-campaign-review` can re-read their **original local source files** and fail closed on mismatched manifest hashes, R13 trials, PhiStream snapshots, R15 arithmetic/status, incompatible model bytes or inconsistent workload settings. It generates a new private JSON review with clear **source-byte consistency, not hardware authenticity** labels and never launches weights, accesses a network or picks a fastest host. Two-machine comparison is descriptive and can be held for incompatible evidence. CI uses synthetic fixtures only. See the [R19 local evidence review guide](docs/FIELD_CAMPAIGN_REVIEW_R19.md).
