@@ -101,6 +101,10 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## Offline Field Campaign Evidence Verifier (R19)
+
+After an operator runs a real R18 field campaign on one or two machines, `phiserve-campaign-review` can re-read their **original local source files** and fail closed on mismatched manifest hashes, R13 trials, PhiStream snapshots, R15 arithmetic/status, incompatible model bytes or inconsistent workload settings. It generates a new private JSON review with clear **source-byte consistency, not hardware authenticity** labels and never launches weights, accesses a network or picks a fastest host. Two-machine comparison is descriptive and can be held for incompatible evidence. CI uses synthetic fixtures only. See the [R19 local evidence review guide](docs/FIELD_CAMPAIGN_REVIEW_R19.md).
+
 ## Operator-controlled physical field campaign (R18)
 
 The new `phiserve-fieldkit preview` checks a locally registered GGUF, trusted `llama-server` executable and CPU-first requested offload profiles **without launching inference or writing files**. The separate `collect --execute` command intentionally runs R13 measured requests sequentially, captures a PhiStream hardware snapshot after the measurements and creates a local R15 capacity advisory plus source-hash-linked manifest. Only operator-controlled, existing GGUF models are used; **no model or CUDA driver is installed**, no data is uploaded, and a missing PhiStream dependency causes the campaign to hold rather than fake hardware counters. CI tests are synthetic, not measurements from a real RTX. See the [R18 Windows main/backup field-run guide](docs/OPERATOR_FIELD_CAMPAIGN_R18.md).
