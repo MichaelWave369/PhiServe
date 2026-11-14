@@ -101,6 +101,10 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## Operator-controlled physical field campaign (R18)
+
+The new `phiserve-fieldkit preview` checks a locally registered GGUF, trusted `llama-server` executable and CPU-first requested offload profiles **without launching inference or writing files**. The separate `collect --execute` command intentionally runs R13 measured requests sequentially, captures a PhiStream hardware snapshot after the measurements and creates a local R15 capacity advisory plus source-hash-linked manifest. Only operator-controlled, existing GGUF models are used; **no model or CUDA driver is installed**, no data is uploaded, and a missing PhiStream dependency causes the campaign to hold rather than fake hardware counters. CI tests are synthetic, not measurements from a real RTX. See the [R18 Windows main/backup field-run guide](docs/OPERATOR_FIELD_CAMPAIGN_R18.md).
+
 ## Hardware-aware evidence advisor (R15, review-only)
 
 The opt-in `phiserve-advisor` command can locally compare a recent PhiStream `PHISTREAM_HARDWARE_SNAPSHOT_V1` with one or more actual PhiServe R13 benchmark receipts for the exact same registered GGUF bytes. It reports conservative RAM/VRAM *file-size floors*, evidence age, latency observations, and strict HOLD/REVIEW_REQUIRED classifications without executing inference or changing R14 queue admission. Results are not model-fit proofs, GPU attestations or permission to route. See [R15 operator guide](docs/HARDWARE_ADVISOR_R15.md).
