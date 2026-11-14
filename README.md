@@ -101,6 +101,10 @@ phiserve validate qwen3:4b --llama-server "C:\\llama.cpp\\build\\bin\\Release\\l
 
 Import only works for a compatible single GGUF model layer. Inference still requires a separately installed, compatible `llama-server` binary; tests do not certify your physical GPU.
 
+## Experimental bounded inference queue (R14)
+
+The shared daemon optionally accepts FIFO waiting requests through `/v1/queued/chat/completions` and `/v1/queued/completions`. Disabled by default (`--queue-capacity 0`). Enable only with an explicit bounded capacity and wait deadline. Active leases are never evicted, queue timeouts/failures remain failures, and all legacy endpoints retain nonblocking behavior when no queue is waiting. This is **not** an adaptive GPU scheduler. See [R14 operator guide](docs/QUEUED_ADMISSION_R14.md).
+
 ## Shared multi-model daemon (Rung 4)
 
 Register multiple GGUF models (or import from Ollama), then start a **single** shared PhiServe daemon. Requests select a registered model by alias. The first request loads it lazily; later requests for the same model share its process. A request for another model switches processes **only after all active requests finish**. If the previous model is busy, PhiServe returns HTTP 409 rather than destroying its stream. A concurrent load/eviction returns HTTP 503 and may be retried. A request limit returns HTTP 429.
