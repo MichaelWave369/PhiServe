@@ -23,6 +23,7 @@ phiserve-advisor = "phiserve.hardware_advisor:main"
 phiserve-fieldkit = "phiserve.field_campaign:main"
 phiserve-campaign-review = "phiserve.campaign_review:main"
 phiserve-campaign-bundle = "phiserve.campaign_bundle:main"
+phiserve-field-study = "phiserve.field_study:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
